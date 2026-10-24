@@ -33,6 +33,7 @@ legacy_u8 dos_audio_context_count;
 
 #define EMBEDDED_FILE_COUNT 64U
 #define EMBEDDED_FILE_FIRST_HANDLE 5U
+#define EMBEDDED_FILENAME_LENGTH 13U
 #define EMBEDDED_KEY_CAPACITY 32U
 #define EMBEDDED_KEY_STATE_CAPACITY 64U
 #define EMBEDDED_FRAME_BYTES (320U * 200U)
@@ -64,6 +65,7 @@ static legacy_u32 embedded_realtime_ticks;
 static legacy_u32 embedded_slow_ticks;
 static legacy_u8 embedded_callbacks_suspended;
 static legacy_s16 embedded_file_error;
+static legacy_s8 embedded_found_filename[EMBEDDED_FILENAME_LENGTH];
 static restunts_embedded_sound_callback embedded_sound_callback;
 static void *embedded_sound_userdata;
 static restunts_embedded_frame_callback embedded_frame_callback;
@@ -373,8 +375,30 @@ legacy_s16 dos_file_remove(const legacy_s8 *path)
 
 const legacy_s8 *dos_file_find_first(const legacy_s8 *query)
 {
-	(void)query;
-	return NULL;
+	if (strchr((const char *)query, '*') != NULL || strchr((const char *)query, '?') != NULL) {
+		return NULL;
+	}
+	FILE *file = embedded_open_file((const char *)query, "rb");
+	if (file == NULL) {
+		return NULL;
+	}
+	fclose(file);
+	const char *filename = (const char *)query;
+	for (const char *character = filename; *character != 0; character++) {
+		if (*character == '/' || *character == '\\' || *character == ':') {
+			filename = character + 1;
+		}
+	}
+	size_t length = strlen(filename);
+	if (length >= sizeof(embedded_found_filename)) {
+		return NULL;
+	}
+	memset(embedded_found_filename, 0, sizeof(embedded_found_filename));
+	memcpy(embedded_found_filename, filename, length);
+	if (embedded_debug_enabled != 0) {
+		printf("[embedded] find '%s' ok\n", (const char *)query);
+	}
+	return embedded_found_filename;
 }
 
 const legacy_s8 *dos_file_find_next(void) { return NULL; }

@@ -47,8 +47,9 @@ Sound-event resource/data pointers are callback-scoped and must be consumed or
 copied before returning. Key injection takes legacy BIOS-style key values;
 held-key, mouse, and joystick state can be updated between ticks.
 
-File handles use ISO C `stdio`. Directory enumeration returns no entries because
-ISO C99 has no directory API; supply a target implementation of
+File handles use ISO C `stdio`. Exact-file probes work, including the extension
+search used by the shape loader; wildcard directory enumeration returns no
+entries because ISO C99 has no directory API. Supply target implementations of
 `dos_file_find_first` and `dos_file_find_next` if the game should discover
 tracks, cars, replays, or other files dynamically. The other OS/input/video
 operations are minimal stubs and should be replaced or driven by the target.
