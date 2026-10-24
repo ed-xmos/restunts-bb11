@@ -201,6 +201,7 @@ static void audio_sequence_set_pitch(struct AUDIO_CHANNEL *chunk, legacy_u16 val
 static void audio_sequence_finish_channel(legacy_s16 channel, struct AUDIO_CHANNEL *chunk,
 										  legacy_s16 reset_channel)
 {
+	__attribute__((fptrgroup("restunts_audio_finish_callbacks")))
 	audio_channel_callback_type callback =
 		(audio_channel_callback_type)audio_read_far_pointer((legacy_u8 *)&chunk->finish_callback);
 	chunk->cursor.offset = 0;
@@ -372,6 +373,7 @@ static void audio_advance_music_contexts(void)
 	}
 }
 
+__attribute__((fptrgroup("restunts_timer_callbacks")))
 void audio_sequence_timer(void)
 {
 	if (dos_data_stack_segments_match() == 0 || dos_audio_driver_binary == 0 ||

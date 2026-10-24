@@ -414,6 +414,7 @@ static void audio_restart_timer_engine(struct AUDIO_TIMER *timer, legacy_u16 ind
 	}
 }
 
+__attribute__((fptrgroup("restunts_timer_callbacks")))
 void audio_driver_timer(void)
 {
 	if (dos_data_stack_segments_match() == 0) {

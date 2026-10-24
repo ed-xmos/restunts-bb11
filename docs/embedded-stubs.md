@@ -18,13 +18,18 @@ after sourcing the XMOS environment, or pass the directory containing
 Enable callback traces with `RESTUNTS_XMOS_DEBUG=ON ./build-xmos.sh`; output is
 rate-limited for timer, frame, and sound callbacks. The runtime can also toggle
 tracing with `restunts_embedded_set_debug()`.
+Frame saving is enabled by default. Set `RESTUNTS_XMOS_SAVE_FRAMES=OFF` when
+building to disable it. Presented frames are saved as `fr0000.ppm`,
+`fr0001.ppm`, and so on in the simulator's working directory. The files use
+binary PPM (P6), 320x200 RGB pixels, with palette channels expanded from VGA
+0-63 to 0-255.
 The root CMake file selects
 `XCORE-AI-EXPLORER-800.xn`, reuses the same game sources, and adds a minimal C
 entry point. This only establishes a build target; it does not yet bind the
 board's display, sound, controls, timer, or FFS implementation.
 
-To run the simulator with the repository's game data, launch it from the data
-directory so relative DOS resource names resolve there:
+Run the simulator with `./run-xmos.sh`. It launches the app from `stunts/` so
+relative DOS resources resolve and saved frames appear there. To run it manually:
 
 ```sh
 cd stunts

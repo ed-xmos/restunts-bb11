@@ -38,6 +38,7 @@ legacy_u8 dos_audio_context_count;
 #define EMBEDDED_KEY_STATE_CAPACITY 64U
 #define EMBEDDED_FRAME_BYTES (320U * 200U)
 #define EMBEDDED_PALETTE_BYTES (256U * 3U)
+#define EMBEDDED_RGB_ROW_BYTES (320U * 3U)
 #define EMBEDDED_VIDEO_SEGMENT 0xA000U
 #define EMBEDDED_TIMER_CALLBACK_COUNT DOS_TIMER_USABLE_CALLBACK_COUNT
 
@@ -59,13 +60,15 @@ static legacy_s16 embedded_joystick_y;
 static legacy_s16 embedded_joystick_flags;
 static legacy_u8 embedded_joystick_enabled;
 static legacy_u8 embedded_palette[EMBEDDED_PALETTE_BYTES];
-static void (*embedded_timer_callbacks[EMBEDDED_TIMER_CALLBACK_COUNT])(void);
+static void (__attribute__((fptrgroup("restunts_timer_callbacks")))
+			*embedded_timer_callbacks[EMBEDDED_TIMER_CALLBACK_COUNT])(void);
 static legacy_u32 embedded_game_ticks;
 static legacy_u32 embedded_realtime_ticks;
 static legacy_u32 embedded_slow_ticks;
 static legacy_u8 embedded_callbacks_suspended;
 static legacy_s16 embedded_file_error;
 static legacy_s8 embedded_found_filename[EMBEDDED_FILENAME_LENGTH];
+__attribute__((fptrgroup("restunts_embedded_sound_callbacks")))
 static restunts_embedded_sound_callback embedded_sound_callback;
 static void *embedded_sound_userdata;
 static restunts_embedded_frame_callback embedded_frame_callback;
@@ -73,6 +76,9 @@ static void *embedded_frame_userdata;
 static legacy_u8 embedded_debug_enabled;
 static legacy_u32 embedded_debug_sound_events;
 static legacy_u32 embedded_debug_frame_count;
+static legacy_u8 embedded_frame_saver_enabled;
+static legacy_u32 embedded_saved_frame_count;
+static legacy_u8 embedded_rgb_row[EMBEDDED_RGB_ROW_BYTES];
 
 static void embedded_sound_emit(legacy_u16 command, legacy_s16 channel, legacy_s16 value,
 								legacy_u16 parameter, const void *resource,
@@ -107,6 +113,15 @@ void restunts_embedded_set_frame_callback(restunts_embedded_frame_callback callb
 {
 	embedded_frame_callback = callback;
 	embedded_frame_userdata = userdata;
+}
+
+void restunts_embedded_set_frame_saver(legacy_u8 enabled)
+{
+	enabled = enabled != 0;
+	if (enabled != embedded_frame_saver_enabled) {
+		embedded_saved_frame_count = 0;
+	}
+	embedded_frame_saver_enabled = enabled;
 }
 
 void restunts_embedded_set_debug(legacy_u8 enabled)
@@ -190,8 +205,10 @@ void restunts_embedded_tick_10ms(void)
 			embedded_slow_ticks++;
 		}
 		for (legacy_u32 index = 0; index < EMBEDDED_TIMER_CALLBACK_COUNT; index++) {
-			if (embedded_timer_callbacks[index] != NULL) {
-				embedded_timer_callbacks[index]();
+			__attribute__((fptrgroup("restunts_timer_callbacks")))
+			void (*callback)(void) = embedded_timer_callbacks[index];
+			if (callback != NULL) {
+				callback();
 			}
 		}
 	}
@@ -207,6 +224,43 @@ const legacy_u8 *restunts_embedded_palette(void)
 	return embedded_palette;
 }
 
+static legacy_s16 embedded_save_frame_ppm(const legacy_u8 *framebuffer, const legacy_u8 *palette)
+{
+	char filename[24];
+	int filename_length = snprintf(filename, sizeof(filename), "fr%04lu.ppm",
+								   (unsigned long)embedded_saved_frame_count);
+	if (filename_length < 0 || (size_t)filename_length >= sizeof(filename)) {
+		return 0;
+	}
+	FILE *file = fopen(filename, "wb");
+	if (file == NULL) {
+		return 0;
+	}
+	if (fprintf(file, "P6\n320 200\n255\n") < 0) {
+		fclose(file);
+		return 0;
+	}
+	for (legacy_u32 y = 0; y < 200U; y++) {
+		for (legacy_u32 x = 0; x < 320U; x++) {
+			legacy_u32 color = (legacy_u32)framebuffer[y * 320U + x] * 3U;
+			for (legacy_u32 channel = 0; channel < 3U; channel++) {
+				legacy_u32 value = palette[color + channel] & 63U;
+				embedded_rgb_row[x * 3U + channel] = (legacy_u8)((value * 255U + 31U) / 63U);
+			}
+		}
+		if (fwrite(embedded_rgb_row, 1, sizeof(embedded_rgb_row), file) !=
+			sizeof(embedded_rgb_row)) {
+			fclose(file);
+			return 0;
+		}
+	}
+	if (fclose(file) != 0) {
+		return 0;
+	}
+	embedded_saved_frame_count++;
+	return 1;
+}
+
 void restunts_embedded_present_frame(void)
 {
 	if (embedded_debug_enabled != 0) {
@@ -217,9 +271,15 @@ void restunts_embedded_present_frame(void)
 				   embedded_frame_callback != NULL ? "installed" : "not installed");
 		}
 	}
+	const legacy_u8 *framebuffer = restunts_embedded_framebuffer();
+	const legacy_u8 *palette = restunts_embedded_palette();
+	if (embedded_frame_saver_enabled != 0 &&
+		embedded_save_frame_ppm(framebuffer, palette) == 0) {
+		fputs("[embedded] frame saver disabled after file write failure\n", stderr);
+		embedded_frame_saver_enabled = 0;
+	}
 	if (embedded_frame_callback != NULL) {
-		embedded_frame_callback(restunts_embedded_framebuffer(), restunts_embedded_palette(),
-								embedded_frame_userdata);
+		embedded_frame_callback(framebuffer, palette, embedded_frame_userdata);
 	}
 }
 

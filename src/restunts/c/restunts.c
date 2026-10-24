@@ -1,5 +1,14 @@
 #include <stddef.h>
 #include <stdarg.h>
+#if defined(RESTUNTS_EMBEDDED_STUBS) && defined(RESTUNTS_EMBEDDED_DEBUG)
+#define RESTUNTS_STARTUP_TRACE(stage)                                                   \
+	do {                                                                                 \
+		static const char message[] = "[embedded] startup: " stage "\n";                 \
+		dos_write_stdout((const legacy_s8 *)message, (legacy_u16)(sizeof(message) - 1U)); \
+	} while (0)
+#else
+#define RESTUNTS_STARTUP_TRACE(stage) ((void)0)
+#endif
 #ifdef RESTUNTS_SDL3
 #include <ctype.h>
 #include <stdio.h>
@@ -346,6 +355,7 @@ static void startup_parse_options(legacy_s16 argc, legacy_s8 *argv[],
 
 static void startup_measure_video(void)
 {
+	RESTUNTS_STARTUP_TRACE("video benchmark begin");
 	// Timing measures.
 	sprite_select_screen();
 	sprite_set_target_clip_bounds(0, 320, 0, 120);
@@ -355,6 +365,7 @@ static void startup_measure_video(void)
 		sprite_clear_target(0);
 	}
 	legacy_u32 full_clear_ticks = timer_get_delta_alt();
+	RESTUNTS_STARTUP_TRACE("video benchmark full clear complete");
 
 	sprite_set_target_clip_bounds(0, 320, 0, 60);
 
@@ -373,6 +384,7 @@ static void startup_measure_video(void)
 	}
 
 	legacy_u32 partial_redraw_ticks = timer_get_delta_alt();
+	RESTUNTS_STARTUP_TRACE("video benchmark partial redraw complete");
 
 	for (legacy_u16 i = 0; i < 146; ++i) {
 		for (legacy_u16 j = 0; j < 255; ++j) {
@@ -381,6 +393,7 @@ static void startup_measure_video(void)
 	}
 
 	legacy_u32 geometry_benchmark_ticks = timer_get_delta_alt();
+	RESTUNTS_STARTUP_TRACE("video benchmark geometry complete");
 
 	slow_video_mgmt = (partial_redraw_ticks <= full_clear_ticks);
 	configured_frame_rate =
@@ -480,9 +493,12 @@ void init_main(legacy_s16 argc, legacy_s8 *argv[])
 
 	load_palandcursor();
 
+	RESTUNTS_STARTUP_TRACE("video benchmark starting");
 	startup_measure_video();
 
+	RESTUNTS_STARTUP_TRACE("random wait starting");
 	random_wait();
+	RESTUNTS_STARTUP_TRACE("random wait complete");
 
 	copy_material_list_pointers(material_clrlist_ptr, material_clrlist2_ptr, material_patlist_ptr,
 								material_patlist2_ptr, 0);
@@ -490,7 +506,9 @@ void init_main(legacy_s16 argc, legacy_s8 *argv[])
 
 static void init_full_game(legacy_s16 argc, legacy_s8 *argv[])
 {
+	RESTUNTS_STARTUP_TRACE("init_main begin");
 	init_main(argc, argv);
+	RESTUNTS_STARTUP_TRACE("init_main complete");
 #ifdef RESTUNTS_HAS_VGA_PAGES
 	/* Dump tools call init_main and hash the packed mode-13h screen. */
 	if (startup_options.mode4_requested == 0) {
@@ -504,16 +522,20 @@ static void init_full_game(legacy_s16 argc, legacy_s8 *argv[])
 	mainresptr = file_load_resfile("main");
 	fontdefptr = file_load_resource(FILE_RESOURCE_BINARY_FATAL, "fontdef.fnt");
 	fontnptr = file_load_resource(FILE_RESOURCE_BINARY_FATAL, "fontn.fnt");
+	RESTUNTS_STARTUP_TRACE("font resources loaded");
 
 	font_set_fontdef();
 	init_polyinfo();
+	RESTUNTS_STARTUP_TRACE("polygon tables initialized");
 	init_trackdata();
+	RESTUNTS_STARTUP_TRACE("track data initialized");
 
 	reset_race_loop_state();
 
 	init_kevinrandom("kevin");
 
 	strcpy(gameconfig.game_trackname, "DEFAULT");
+	RESTUNTS_STARTUP_TRACE("game initialization complete");
 }
 
 static void init_main_input_state(void)
@@ -741,20 +763,25 @@ static void main_menu_run_race(legacy_s8 start_in_replay)
 legacy_s16 run_main_menu_loop(legacy_s16 argc, legacy_s8 *argv[])
 {
 	init_full_game(argc, argv);
+	RESTUNTS_STARTUP_TRACE("main menu initialization complete");
 
 	//fatal_error("ai");
 	init_main_input_state();
+	RESTUNTS_STARTUP_TRACE("input state initialized");
 	set_default_car();
+	RESTUNTS_STARTUP_TRACE("default car selected");
 
 	legacy_s8 start_in_replay;
 	legacy_s16 reload_track = 1;
 	while (1) {
+		RESTUNTS_STARTUP_TRACE("checking game files");
 		ensure_file_exists(2);
 
 		if (reload_track != 0) {
 			file_build_path(track_directory, gameconfig.game_trackname, ".trk", g_path_buf);
 			file_read_fatal(g_path_buf, track_element_map);
 		}
+		RESTUNTS_STARTUP_TRACE("track loaded; starting intro");
 
 		idle_expired = 0;
 		legacy_s16 result = 0;

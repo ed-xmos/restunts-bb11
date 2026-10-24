@@ -7,7 +7,7 @@ set(APP_COMPILER_FLAGS
     -mno-dual-issue
     -g
     -report
-    -std=c99
+    -std=gnu99
     -fsigned-char
     -mcmodel=large
     -DPATH_MAX=64
@@ -20,6 +20,10 @@ set(APP_COMPILER_FLAGS
 option(RESTUNTS_XMOS_DEBUG "Enable embedded callback trace output" OFF)
 if(RESTUNTS_XMOS_DEBUG)
     list(APPEND APP_COMPILER_FLAGS -DRESTUNTS_EMBEDDED_DEBUG=1)
+endif()
+option(RESTUNTS_XMOS_SAVE_FRAMES "Save presented frames as PPM files" ON)
+if(RESTUNTS_XMOS_SAVE_FRAMES)
+    list(APPEND APP_COMPILER_FLAGS -DRESTUNTS_EMBEDDED_SAVE_FRAMES=1)
 endif()
 
 set(APP_C_SRCS)

@@ -112,6 +112,7 @@ static void frame_callback_advance_recording(void)
 	}
 }
 
+__attribute__((fptrgroup("restunts_timer_callbacks")))
 void frame_callback(void)
 {
 	if (dos_data_stack_segments_match() == 0 || frame_callback_active != 0) {
