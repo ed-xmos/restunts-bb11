@@ -60,7 +60,8 @@ if [[ "$build_dir" != /* ]]; then
 	build_dir="$restunts_root/$build_dir"
 fi
 
-cmake -S "$restunts_root" -B "$build_dir" -DRESTUNTS_BUILD_XMOS=ON
+cmake -S "$restunts_root" -B "$build_dir" -DRESTUNTS_BUILD_XMOS=ON \
+	"-DRESTUNTS_XMOS_DEBUG=${RESTUNTS_XMOS_DEBUG:-OFF}"
 if [[ "$clean_build" -eq 1 ]]; then
 	cmake --build "$build_dir" --target clean
 fi

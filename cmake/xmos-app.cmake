@@ -17,6 +17,10 @@ set(APP_COMPILER_FLAGS
     -DRESTUNTS_GIT_HASH=\"embedded\"
     -DUSE_EXTMEM=1
     -Wno-unknown-pragmas)
+option(RESTUNTS_XMOS_DEBUG "Enable embedded callback trace output" OFF)
+if(RESTUNTS_XMOS_DEBUG)
+    list(APPEND APP_COMPILER_FLAGS -DRESTUNTS_EMBEDDED_DEBUG=1)
+endif()
 
 set(APP_C_SRCS)
 foreach(source IN LISTS restunts_embedded_game_sources)

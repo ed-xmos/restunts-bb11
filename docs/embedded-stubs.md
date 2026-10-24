@@ -15,6 +15,9 @@ GCC/Clang. Link with dead-section elimination where supported.
 For the XCORE-AI Explorer xcommon application profile, run `./build-xmos.sh`
 after sourcing the XMOS environment, or pass the directory containing
 `xcommon.cmake` to the script. Use `./build-xmos.sh --clean` for a clean build.
+Enable callback traces with `RESTUNTS_XMOS_DEBUG=ON ./build-xmos.sh`; output is
+rate-limited for timer, frame, and sound callbacks. The runtime can also toggle
+tracing with `restunts_embedded_set_debug()`.
 The root CMake file selects
 `XCORE-AI-EXPLORER-800.xn`, reuses the same game sources, and adds a minimal C
 entry point. This only establishes a build target; it does not yet bind the

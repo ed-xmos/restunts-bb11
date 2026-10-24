@@ -68,11 +68,23 @@ static restunts_embedded_sound_callback embedded_sound_callback;
 static void *embedded_sound_userdata;
 static restunts_embedded_frame_callback embedded_frame_callback;
 static void *embedded_frame_userdata;
+static legacy_u8 embedded_debug_enabled;
+static legacy_u32 embedded_debug_sound_events;
+static legacy_u32 embedded_debug_frame_count;
 
 static void embedded_sound_emit(legacy_u16 command, legacy_s16 channel, legacy_s16 value,
 								legacy_u16 parameter, const void *resource,
 								const legacy_u8 *data, legacy_u16 length)
 {
+	if (embedded_debug_enabled != 0) {
+		if (embedded_debug_sound_events < 32U) {
+			printf("[embedded] sound event=%u channel=%d value=%d parameter=%u\n",
+				   (unsigned)command, (int)channel, (int)value, (unsigned)parameter);
+		} else if (embedded_debug_sound_events == 32U) {
+			printf("[embedded] further sound-event traces suppressed\n");
+		}
+		embedded_debug_sound_events++;
+	}
 	if (embedded_sound_callback == NULL) {
 		return;
 	}
@@ -93,6 +105,14 @@ void restunts_embedded_set_frame_callback(restunts_embedded_frame_callback callb
 {
 	embedded_frame_callback = callback;
 	embedded_frame_userdata = userdata;
+}
+
+void restunts_embedded_set_debug(legacy_u8 enabled)
+{
+	embedded_debug_enabled = enabled != 0;
+	if (embedded_debug_enabled != 0) {
+		printf("[embedded] callback tracing enabled\n");
+	}
 }
 
 void restunts_embedded_queue_key(legacy_s16 key)
@@ -138,13 +158,30 @@ void restunts_embedded_set_joystick(legacy_s16 x, legacy_s16 y, legacy_s16 flags
 
 legacy_s16 restunts_embedded_run(legacy_s16 argc, legacy_s8 *argv[])
 {
+	if (embedded_debug_enabled != 0) {
+		printf("[embedded] full_data_initialize begin\n");
+	}
 	full_data_initialize();
-	return run_main_menu_loop(argc, argv);
+	if (embedded_debug_enabled != 0) {
+		printf("[embedded] full_data_initialize complete\n");
+		printf("[embedded] run_main_menu_loop begin\n");
+	}
+	legacy_s16 result = run_main_menu_loop(argc, argv);
+	if (embedded_debug_enabled != 0) {
+		printf("[embedded] run_main_menu_loop returned %d\n", (int)result);
+	}
+	return result;
 }
 
 void restunts_embedded_tick_10ms(void)
 {
 	embedded_realtime_ticks++;
+	if (embedded_debug_enabled != 0 &&
+		(embedded_realtime_ticks == 1U || embedded_realtime_ticks % 100U == 0U)) {
+		printf("[embedded] timer tick=%lu game=%lu suspended=%u\n",
+			   (unsigned long)embedded_realtime_ticks, (unsigned long)embedded_game_ticks,
+			   (unsigned)embedded_callbacks_suspended);
+	}
 	if (!embedded_callbacks_suspended) {
 		embedded_game_ticks++;
 		if ((embedded_game_ticks % DOS_TIMER_DEFAULT_DIVIDER_PERIOD) == 0) {
@@ -170,6 +207,14 @@ const legacy_u8 *restunts_embedded_palette(void)
 
 void restunts_embedded_present_frame(void)
 {
+	if (embedded_debug_enabled != 0) {
+		embedded_debug_frame_count++;
+		if (embedded_debug_frame_count == 1U || embedded_debug_frame_count % 100U == 0U) {
+			printf("[embedded] frame=%lu callback=%s\n",
+				   (unsigned long)embedded_debug_frame_count,
+				   embedded_frame_callback != NULL ? "installed" : "not installed");
+		}
+	}
 	if (embedded_frame_callback != NULL) {
 		embedded_frame_callback(restunts_embedded_framebuffer(), restunts_embedded_palette(),
 								embedded_frame_userdata);
@@ -243,6 +288,10 @@ legacy_u16 dos_file_open(const legacy_s8 *path, legacy_s16 create)
 			embedded_files[handle] = embedded_open_file(
 				(const char *)path, create == DOS_FILE_OPEN_EXISTING ? "rb" : "wb+");
 			embedded_file_error = embedded_files[handle] == NULL;
+			if (embedded_debug_enabled != 0) {
+				printf("[embedded] open '%s' %s\n", (const char *)path,
+					   embedded_file_error == 0 ? "ok" : "failed");
+			}
 			return embedded_files[handle] != NULL ? handle : 0;
 		}
 	}

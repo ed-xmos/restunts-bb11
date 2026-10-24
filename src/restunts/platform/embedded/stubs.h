@@ -36,6 +36,7 @@ void restunts_embedded_set_sound_callback(restunts_embedded_sound_callback callb
 										  void *userdata);
 void restunts_embedded_set_frame_callback(restunts_embedded_frame_callback callback,
 										  void *userdata);
+void restunts_embedded_set_debug(legacy_u8 enabled);
 void restunts_embedded_queue_key(legacy_s16 key);
 void restunts_embedded_set_key_state(legacy_s16 key, legacy_u8 down);
 void restunts_embedded_set_mouse(legacy_s16 buttons, legacy_s16 x, legacy_s16 y);
