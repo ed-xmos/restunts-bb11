@@ -1,3 +1,15 @@
+cmake_minimum_required(VERSION 3.21)
+option(RESTUNTS_BUILD_XMOS "Build the XMOS xcommon embedded application" OFF)
+if(RESTUNTS_BUILD_XMOS)
+    if("$ENV{XMOS_CMAKE_PATH}" STREQUAL "")
+        message(FATAL_ERROR "RESTUNTS_BUILD_XMOS requires XMOS_CMAKE_PATH")
+    endif()
+    include("$ENV{XMOS_CMAKE_PATH}/xcommon.cmake")
+    project(restunts)
+    include("${CMAKE_CURRENT_LIST_DIR}/cmake/xmos-app.cmake")
+    return()
+endif()
+
 cmake_minimum_required(VERSION 3.25)
 project(restunts VERSION 1.0 LANGUAGES C)
 

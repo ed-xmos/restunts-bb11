@@ -551,6 +551,29 @@ provides the final entry point and links the archive. See
 [the embedded profile guide](docs/embedded-stubs.md) for its framebuffer,
 input, timer, sound-event, and filesystem interfaces.
 
+For the XCORE-AI Explorer xcommon build, run the root-level helper after `x15`
+has sourced the XMOS environment:
+
+```sh
+./build-xmos.sh
+```
+
+Alternatively, pass the directory containing `xcommon.cmake`:
+
+```sh
+./build-xmos.sh /path/to/xmos/cmake
+```
+
+Add `--clean` to clean generated outputs before building:
+
+```sh
+./build-xmos.sh --clean
+```
+
+This profile uses the same game/stub sources and the `XCORE-AI-EXPLORER-800.xn`
+target. It is a compile/link starting point; board-specific graphics, audio,
+timer, controls, and FFS wiring still need to be supplied.
+
 ### SDL3 native builds: Linux, BSD, Haiku, Windows, macOS, and 32-bit DOS
 
 The CMake build produces the game (`restunts`), physics dumper (`repldump`),

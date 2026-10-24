@@ -12,6 +12,14 @@ Pass the embedded compiler or its toolchain file through the normal CMake
 options. The profile uses C99, `-Os`, function sections, and data sections for
 GCC/Clang. Link with dead-section elimination where supported.
 
+For the XCORE-AI Explorer xcommon application profile, run `./build-xmos.sh`
+after sourcing the XMOS environment, or pass the directory containing
+`xcommon.cmake` to the script. Use `./build-xmos.sh --clean` for a clean build.
+The root CMake file selects
+`XCORE-AI-EXPLORER-800.xn`, reuses the same game sources, and adds a minimal C
+entry point. This only establishes a build target; it does not yet bind the
+board's display, sound, controls, timer, or FFS implementation.
+
 The library includes the original 1 MiB segmented-memory compatibility map.
 `stubs.h` exposes the indexed 320x200 framebuffer and VGA palette, input
 injection, a manually driven 10 ms timer tick, and a callback for legacy sound
