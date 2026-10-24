@@ -15,6 +15,7 @@ set(APP_COMPILER_FLAGS
     -DRESTUNTS_FULL
     -DRESTUNTS_EMBEDDED_STUBS
     -DRESTUNTS_GIT_HASH=\"embedded\"
+    -DUSE_EXTMEM=1
     -Wno-unknown-pragmas)
 
 set(APP_C_SRCS)

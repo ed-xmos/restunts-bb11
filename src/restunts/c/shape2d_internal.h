@@ -7,7 +7,7 @@ extern legacy_s8 window_row_table_overflow_message[];
 extern legacy_s8 video_window_resource_name[];
 extern legacy_s8 window_release_order_message[];
 /* Reserved seg012 storage: SPRITE structs followed by line offsets. */
-#ifdef RESTUNTS_SDL3
+#if defined(RESTUNTS_SDL3) || defined(RESTUNTS_EMBEDDED_STUBS)
 extern legacy_u8 wnd_defs[];
 #else
 extern legacy_u8 *far wnd_defs;

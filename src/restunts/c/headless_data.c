@@ -207,7 +207,7 @@ legacy_s16 wallStartX;
 legacy_s16 wallStartZ;
 legacy_s16 wallOrientation;
 legacy_s8 track_wall_collision_enabled;
-legacy_s8 corkFlag;
+legacy_u8 corkFlag;
 legacy_s16 penalty_time;
 legacy_s16 track_pieces_counter;
 legacy_u8 roadside_sign_count;

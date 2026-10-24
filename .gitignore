@@ -1,6 +1,7 @@
 .venv/
 out/*
 /build/
+/cmake/bin/
 tools/scripts/dumpsrv/dumpsrv/bin/
 tools/scripts/dumpsrv/dumpsrv/obj/
 tools/scripts/dumpsrv/dumpsrv.tests/bin/

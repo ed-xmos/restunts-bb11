@@ -13,10 +13,16 @@
 #define MEMORY_PARAGRAPH_SHIFT 4U
 #define MEMORY_PSP_ADDRESS 0x028E0UL
 
+#if defined(__XMOS__) && defined(USE_EXTMEM)
+#define RESTUNTS_EXTMEM_BSS __attribute__((section(".ExtMem.bss")))
+#else
+#define RESTUNTS_EXTMEM_BSS
+#endif
+
 /* Resource files contain real 16:16 addresses after relocation. Keep their
  * address space independent of the host pointer size, including VGA A000:0.
  * Native static/stack objects use registered pages outside the resource arena. */
-static legacy_u8 memory[MEMORY_BYTES];
+static legacy_u8 memory[MEMORY_BYTES] RESTUNTS_EXTMEM_BSS;
 static uintptr_t external_pages[EXTERNAL_PAGE_COUNT];
 static legacy_u16 external_page_count;
 

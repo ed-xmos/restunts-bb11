@@ -3,6 +3,7 @@
 #include "../../c/keyboard.h"
 #include "../../c/game_input.h"
 #include "../../c/audio.h"
+#include "../../c/audio_internal.h"
 #include "../../c/menu_background.h"
 #include "../../c/opponent_portrait.h"
 #include "../../c/opponent_animation.h"
@@ -14,6 +15,21 @@
 #include <string.h>
 
 extern void full_data_initialize(void);
+
+struct AUDIO_TIMER audio_timers[AUDIO_TIMER_COUNT];
+struct AUDIO_CHANNEL audio_channels[AUDIO_CHANNEL_COUNT];
+struct AUDIO_CHANNEL *audio_sfx_channels = audio_channels + AUDIO_EFFECT_CHANNEL_FIRST;
+struct AUDIO_CONTEXT dos_audio_contexts[AUDIO_CONTEXT_COUNT];
+legacy_u8 dos_audio_master_state[DOS_AUDIO_MASTER_STATE_SIZE] = DOS_AUDIO_MASTER_STATE_INITIALIZER;
+legacy_u8 dos_audio_driver_data[DOS_AUDIO_DRIVER_DATA_SIZE];
+void *dos_audio_driver_binary;
+legacy_s16 audio_update_lock = AUDIO_UPDATE_LOCKED;
+legacy_s8 audio_music_enabled = AUDIO_STATE_ENABLED;
+legacy_s8 audio_effects_enabled = AUDIO_STATE_ENABLED;
+legacy_u8 dos_audio_uses_direct_channels;
+legacy_u8 dos_audio_special_mode;
+legacy_u8 dos_audio_master_volume;
+legacy_u8 dos_audio_context_count;
 
 #define EMBEDDED_FILE_COUNT 64U
 #define EMBEDDED_FILE_FIRST_HANDLE 5U
