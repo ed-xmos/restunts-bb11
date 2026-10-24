@@ -20,6 +20,14 @@ The root CMake file selects
 entry point. This only establishes a build target; it does not yet bind the
 board's display, sound, controls, timer, or FFS implementation.
 
+To run the simulator with the repository's game data, launch it from the data
+directory so relative DOS resource names resolve there:
+
+```sh
+cd stunts
+xsim ../cmake/bin/restunts.xe
+```
+
 The library includes the original 1 MiB segmented-memory compatibility map.
 `stubs.h` exposes the indexed 320x200 framebuffer and VGA palette, input
 injection, a manually driven 10 ms timer tick, and a callback for legacy sound

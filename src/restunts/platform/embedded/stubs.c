@@ -216,12 +216,32 @@ void dos_interrupts_disable(void) {}
 void dos_interrupts_enable(void) {}
 void dos_set_critical_error_handler(legacy_s16(far *callback)(void)) { (void)callback; }
 
+static FILE *embedded_open_file(const char *path, const char *mode)
+{
+	FILE *file = fopen(path, mode);
+	if (file != NULL || mode[0] != 'r') {
+		return file;
+	}
+	size_t path_length = strlen(path);
+	char *uppercase_path = malloc(path_length + 1U);
+	if (uppercase_path == NULL) {
+		return NULL;
+	}
+	for (size_t index = 0; index <= path_length; index++) {
+		char value = path[index];
+		uppercase_path[index] = value >= 'a' && value <= 'z' ? value - ('a' - 'A') : value;
+	}
+	file = fopen(uppercase_path, mode);
+	free(uppercase_path);
+	return file;
+}
+
 legacy_u16 dos_file_open(const legacy_s8 *path, legacy_s16 create)
 {
 	for (legacy_u16 handle = EMBEDDED_FILE_FIRST_HANDLE; handle < EMBEDDED_FILE_COUNT; handle++) {
 		if (embedded_files[handle] == NULL) {
-			embedded_files[handle] = fopen((const char *)path,
-											   create == DOS_FILE_OPEN_EXISTING ? "rb" : "wb+");
+			embedded_files[handle] = embedded_open_file(
+				(const char *)path, create == DOS_FILE_OPEN_EXISTING ? "rb" : "wb+");
 			embedded_file_error = embedded_files[handle] == NULL;
 			return embedded_files[handle] != NULL ? handle : 0;
 		}
