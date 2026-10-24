@@ -8,6 +8,10 @@
 #include "externs.h"
 #include "keyboard.h"
 
+#ifdef RESTUNTS_EMBEDDED_STUBS
+#include "../platform/embedded/stubs.h"
+#endif
+
 #ifdef __ANDROID__
 #include "../platform/sdl3/sdl3.h"
 #endif
@@ -59,9 +63,18 @@ legacy_s16 sprite_blit_to_video(struct SPRITE far *sprite, legacy_s16 mode)
 {
 	sprite_select_screen_compat();
 	mouse_draw_opaque_check();
+#ifdef RESTUNTS_EMBEDDED_STUBS
+	sprite_putimage(sprite->sprite_bitmapptr);
+	mouse_draw_transparent_check();
+	restunts_embedded_present_frame();
+	return 0;
+#endif
 	if ((legacy_u16)mode == SPRITE_BLIT_IMMEDIATE_MODE) {
 		sprite_putimage(sprite->sprite_bitmapptr);
 		mouse_draw_transparent_check();
+#ifdef RESTUNTS_EMBEDDED_STUBS
+		restunts_embedded_present_frame();
+#endif
 		return 0;
 	}
 
@@ -78,6 +91,9 @@ legacy_s16 sprite_blit_to_video(struct SPRITE far *sprite, legacy_s16 mode)
 		sprite_putimage(sprite->sprite_bitmapptr);
 	}
 	mouse_draw_transparent_check();
+#ifdef RESTUNTS_EMBEDDED_STUBS
+	restunts_embedded_present_frame();
+#endif
 	return result;
 }
 

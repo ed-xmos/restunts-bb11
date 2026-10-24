@@ -11,6 +11,9 @@
 #include "fileio.h"
 #include "memmgr.h"
 #include "keyboard.h"
+#ifdef RESTUNTS_EMBEDDED_STUBS
+#include "../platform/embedded/stubs.h"
+#endif
 #ifdef RESTUNTS_SDL3
 #include "presentation.h"
 #endif
@@ -499,6 +502,9 @@ static void intro_present_session(struct INTRO_SESSION *intro)
 			sprite_putimage(render_window_sprite->sprite_bitmapptr);
 			mouse_draw_transparent_check();
 		}
+#ifdef RESTUNTS_EMBEDDED_STUBS
+		restunts_embedded_present_frame();
+#endif
 	}
 }
 

@@ -696,6 +696,9 @@ legacy_s8 do_fileselect_dialog(legacy_s8 *directory, legacy_s8 *filename, legacy
 
 void ensure_file_exists(legacy_s16 file_index)
 {
+#ifdef RESTUNTS_EMBEDDED_STUBS
+	(void)file_index;
+#else
 	static legacy_s8 *const message_ids[] = {missing_disk1_message_id, missing_disk2_message_id,
 											 missing_disk3_message_id, missing_disk4_message_id};
 
@@ -706,6 +709,7 @@ void ensure_file_exists(legacy_s16 file_index)
 		mouse_draw_opaque_check();
 		kbormouse = 0;
 	}
+#endif
 }
 
 void show_waiting(void)
