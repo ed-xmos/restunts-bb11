@@ -9,6 +9,9 @@
 #include "platform.h"
 #include "shape2d.h"
 #include "shape2d_internal.h"
+#ifdef RESTUNTS_EMBEDDED_STUBS
+#include "../platform/embedded/stubs.h"
+#endif
 #include "game_input.h"
 #include "video_pages.h"
 #ifdef RESTUNTS_SDL3
@@ -842,6 +845,8 @@ void sprite_present_mcga_backbuffer(void)
 	sprite_putimage(mcga_backbuffer_sprite->sprite_bitmapptr);
 #ifdef RESTUNTS_SDL3
 	sdl3_video_present();
+#elif defined(RESTUNTS_EMBEDDED_STUBS)
+	restunts_embedded_present_frame();
 #endif
 }
 
