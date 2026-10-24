@@ -48,10 +48,10 @@
             <Port Location="XS1_PORT_1B" Name="PORT_SQI_CS"/>
             <Port Location="XS1_PORT_1C" Name="PORT_SQI_SCLK"/>
             <Port Location="XS1_PORT_4B" Name="PORT_SQI_SIO"/>
-            
+
             <Port Location="XS1_PORT_4C" Name="PORT_LEDS"/>
             <Port Location="XS1_PORT_4D" Name="PORT_BUTTONS"/>
-            
+
             <Port Location="XS1_PORT_1I"  Name="WIFI_WIRQ"/>
             <Port Location="XS1_PORT_1J"  Name="WIFI_MOSI"/>
             <Port Location="XS1_PORT_4E"  Name="WIFI_WUP_RST_N"/>
