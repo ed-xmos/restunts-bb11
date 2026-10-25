@@ -23,7 +23,7 @@ void timer_thread(void)
 	hwtimer_t timer = hwtimer_alloc();
 	while (1) {
 		hwtimer_delay(timer, XS1_TIMER_KHZ * 10);
-        printf("tick\n");
+		printf("tick\n");
 		restunts_embedded_tick_10ms();
 	}
 }

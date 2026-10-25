@@ -18,4 +18,16 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
         -Wall -Wextra -Wno-pointer-sign -Wno-missing-field-initializers -Wno-missing-braces)
 endif()
 
+if(NOT CMAKE_CROSSCOMPILING)
+    find_package(Threads REQUIRED)
+    add_executable(restunts_embedded_runner
+        "${CMAKE_SOURCE_DIR}/src/restunts/platform/embedded/native_main.c")
+    set_target_properties(restunts_embedded_runner PROPERTIES
+        C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
+    target_include_directories(restunts_embedded_runner PRIVATE
+        "${CMAKE_SOURCE_DIR}/src/restunts/platform/embedded")
+    target_link_libraries(restunts_embedded_runner PRIVATE
+        restunts_embedded_stubs Threads::Threads)
+endif()
+
 message(STATUS "Building dependency-free C99 embedded stub library: restunts_embedded_stubs")

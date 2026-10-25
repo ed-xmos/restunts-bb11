@@ -8,6 +8,19 @@ cmake -S . -B out/embedded-stubs -DRESTUNTS_BUILD_EMBEDDED_STUBS=ON
 cmake --build out/embedded-stubs --target restunts_embedded_stubs
 ```
 
+For fast host-side frame testing, use the native runner:
+
+```sh
+./build-embedded-native.sh
+./run-embedded-native.sh --frames 10
+```
+
+The runner advances timer ticks at the game's intended 100 Hz, saves indexed
+BMP frames from `stunts/`, and reports the number of nonzero pixels in each
+frame. Use `--debug` for embedded callback traces. The default limit is 10
+frames; `RESTUNTS_NATIVE_TIMEOUT` sets the run timeout (default `60s`). This
+checks game rendering and capture logic, not XMOS cycle timing.
+
 Pass the embedded compiler or its toolchain file through the normal CMake
 options. The profile uses C99, `-Os`, function sections, and data sections for
 GCC/Clang. Link with dead-section elimination where supported.
@@ -19,10 +32,9 @@ Enable callback traces with `RESTUNTS_XMOS_DEBUG=ON ./build-xmos.sh`; output is
 rate-limited for timer, frame, and sound callbacks. The runtime can also toggle
 tracing with `restunts_embedded_set_debug()`.
 Frame saving is enabled by default. Set `RESTUNTS_XMOS_SAVE_FRAMES=OFF` when
-building to disable it. Presented frames are saved as `fr0000.ppm`,
-`fr0001.ppm`, and so on in the simulator's working directory. The files use
-binary PPM (P6), 320x200 RGB pixels, with palette channels expanded from VGA
-0-63 to 0-255.
+building to disable it. Presented frames are saved as `fr0000.bmp`,
+`fr0001.bmp`, and so on in the simulator's working directory. The files are
+320x200, 8-bit indexed-color BMPs with the original 256-color VGA palette.
 The root CMake file selects
 `XCORE-AI-EXPLORER-800.xn`, reuses the same game sources, and adds a minimal C
 entry point. This only establishes a build target; it does not yet bind the

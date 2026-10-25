@@ -38,7 +38,7 @@ legacy_u8 dos_audio_context_count;
 #define EMBEDDED_KEY_STATE_CAPACITY 64U
 #define EMBEDDED_FRAME_BYTES (320U * 200U)
 #define EMBEDDED_PALETTE_BYTES (256U * 3U)
-#define EMBEDDED_RGB_ROW_BYTES (320U * 3U)
+#define EMBEDDED_BMP_HEADER_BYTES (14U + 40U + 256U * 4U)
 #define EMBEDDED_VIDEO_SEGMENT 0xA000U
 #define EMBEDDED_TIMER_CALLBACK_COUNT DOS_TIMER_USABLE_CALLBACK_COUNT
 
@@ -78,7 +78,6 @@ static legacy_u32 embedded_debug_sound_events;
 static legacy_u32 embedded_debug_frame_count;
 static legacy_u8 embedded_frame_saver_enabled;
 static legacy_u32 embedded_saved_frame_count;
-static legacy_u8 embedded_rgb_row[EMBEDDED_RGB_ROW_BYTES];
 
 static void embedded_sound_emit(legacy_u16 command, legacy_s16 channel, legacy_s16 value,
 								legacy_u16 parameter, const void *resource,
@@ -224,35 +223,56 @@ const legacy_u8 *restunts_embedded_palette(void)
 	return embedded_palette;
 }
 
-static legacy_s16 embedded_save_frame_ppm(const legacy_u8 *framebuffer, const legacy_u8 *palette)
+static void embedded_bmp_store_u16(legacy_u8 *destination, legacy_u16 value)
+{
+	destination[0] = (legacy_u8)value;
+	destination[1] = (legacy_u8)(value >> 8);
+}
+
+static void embedded_bmp_store_u32(legacy_u8 *destination, legacy_u32 value)
+{
+	destination[0] = (legacy_u8)value;
+	destination[1] = (legacy_u8)(value >> 8);
+	destination[2] = (legacy_u8)(value >> 16);
+	destination[3] = (legacy_u8)(value >> 24);
+}
+
+static legacy_s16 embedded_save_frame_bmp(const legacy_u8 *framebuffer, const legacy_u8 *palette)
 {
 	char filename[24];
-	int filename_length = snprintf(filename, sizeof(filename), "fr%04lu.ppm",
+	int filename_length = snprintf(filename, sizeof(filename), "fr%04lu.bmp",
 								   (unsigned long)embedded_saved_frame_count);
 	if (filename_length < 0 || (size_t)filename_length >= sizeof(filename)) {
 		return 0;
+	}
+	legacy_u8 header[EMBEDDED_BMP_HEADER_BYTES] = {0};
+	header[0] = 'B';
+	header[1] = 'M';
+	embedded_bmp_store_u32(header + 2U, EMBEDDED_BMP_HEADER_BYTES + EMBEDDED_FRAME_BYTES);
+	embedded_bmp_store_u32(header + 10U, EMBEDDED_BMP_HEADER_BYTES);
+	embedded_bmp_store_u32(header + 14U, 40U);
+	embedded_bmp_store_u32(header + 18U, 320U);
+	embedded_bmp_store_u32(header + 22U, (legacy_u32)-200L);
+	embedded_bmp_store_u16(header + 26U, 1U);
+	embedded_bmp_store_u16(header + 28U, 8U);
+	embedded_bmp_store_u32(header + 34U, EMBEDDED_FRAME_BYTES);
+	embedded_bmp_store_u32(header + 46U, 256U);
+	for (legacy_u32 index = 0; index < 256U; index++) {
+		legacy_u32 palette_offset = 54U + index * 4U;
+		legacy_u32 color_offset = index * 3U;
+		for (legacy_u32 channel = 0; channel < 3U; channel++) {
+			legacy_u32 value = palette[color_offset + 2U - channel] & 63U;
+			header[palette_offset + channel] = (legacy_u8)((value * 255U + 31U) / 63U);
+		}
 	}
 	FILE *file = fopen(filename, "wb");
 	if (file == NULL) {
 		return 0;
 	}
-	if (fprintf(file, "P6\n320 200\n255\n") < 0) {
+	if (fwrite(header, 1, sizeof(header), file) != sizeof(header) ||
+		fwrite(framebuffer, 1, EMBEDDED_FRAME_BYTES, file) != EMBEDDED_FRAME_BYTES) {
 		fclose(file);
 		return 0;
-	}
-	for (legacy_u32 y = 0; y < 200U; y++) {
-		for (legacy_u32 x = 0; x < 320U; x++) {
-			legacy_u32 color = (legacy_u32)framebuffer[y * 320U + x] * 3U;
-			for (legacy_u32 channel = 0; channel < 3U; channel++) {
-				legacy_u32 value = palette[color + channel] & 63U;
-				embedded_rgb_row[x * 3U + channel] = (legacy_u8)((value * 255U + 31U) / 63U);
-			}
-		}
-		if (fwrite(embedded_rgb_row, 1, sizeof(embedded_rgb_row), file) !=
-			sizeof(embedded_rgb_row)) {
-			fclose(file);
-			return 0;
-		}
 	}
 	if (fclose(file) != 0) {
 		return 0;
@@ -274,7 +294,7 @@ void restunts_embedded_present_frame(void)
 	const legacy_u8 *framebuffer = restunts_embedded_framebuffer();
 	const legacy_u8 *palette = restunts_embedded_palette();
 	if (embedded_frame_saver_enabled != 0 &&
-		embedded_save_frame_ppm(framebuffer, palette) == 0) {
+		embedded_save_frame_bmp(framebuffer, palette) == 0) {
 		fputs("[embedded] frame saver disabled after file write failure\n", stderr);
 		embedded_frame_saver_enabled = 0;
 	}
