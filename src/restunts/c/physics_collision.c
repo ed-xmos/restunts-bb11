@@ -202,8 +202,9 @@ static legacy_s16 project_contact_coordinate(legacy_s16 position, legacy_s16 dis
 	return LEGACY_S16_WRAP_SUB(position, LEGACY_S16_FROM_BITS((legacy_u16)offset));
 }
 
+__attribute__((fptrgroup("restunts_track_surface_sweep_callbacks")))
 static legacy_s16 sweep_selected_track_underside(struct VECTOR *previous, struct VECTOR *current,
-												 legacy_s16 *fraction)
+											 legacy_s16 *fraction)
 {
 	if (track_wall_collision_enabled != 0 || planindex < PHYSICS_HEIGHT_ONLY_PLANE_COUNT) {
 		return 0;

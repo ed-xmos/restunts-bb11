@@ -135,6 +135,9 @@ void kb_reg_callback(legacy_s16 code, void(far *callback)(void))
 	}
 }
 
+#ifdef __XMOS__
+#pragma stackfunction 2048
+#endif
 legacy_s16 kb_parse_key(legacy_s16 code)
 {
 	legacy_u16 code_bits = (legacy_u16)code;

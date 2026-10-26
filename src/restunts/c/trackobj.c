@@ -1440,6 +1440,9 @@ static legacy_s16 track_object_sample(struct TRACK_OBJECT_SAMPLE *sample,
 	return element_orientation;
 }
 
+#ifdef __XMOS__
+#pragma stackfunction 4096
+#endif
 void build_track_object(struct VECTOR *world_position, struct VECTOR *next_world_position)
 {
 	planindex = NO_PLANE_INDEX;
@@ -1805,8 +1808,11 @@ legacy_s16 track_surface_contains_point(struct VECTOR *point)
 	return contains;
 }
 
-legacy_s16 sweep_track_surface_candidates(struct VECTOR *previous, struct VECTOR *current,
-										  TRACK_SURFACE_SWEEP_TEST test, legacy_s16 *fraction)
+legacy_s16 sweep_track_surface_candidates(
+	struct VECTOR *previous, struct VECTOR *current,
+	legacy_s16 (*__attribute__((fptrgroup("restunts_track_surface_sweep_callbacks"))) test)(
+		struct VECTOR *, struct VECTOR *, legacy_s16 *),
+	legacy_s16 *fraction)
 {
 	struct TRACK_COLLISION_SNAPSHOT saved;
 	track_collision_capture(&saved);

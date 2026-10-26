@@ -433,6 +433,7 @@ static void hv_scan_command(struct HV_BIN *bin, legacy_u32 command_index, legacy
 	}
 }
 
+__attribute__((fptrgroup("restunts_render_worker_callbacks")))
 static void hv_draw_band(void *argument, legacy_s32 band)
 {
 	(void)argument;

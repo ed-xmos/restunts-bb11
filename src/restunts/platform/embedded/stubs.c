@@ -10,11 +10,18 @@
 #include "../../c/skybox_hires.h"
 #include "../../c/render_workers.h"
 #include "../../c/restunts.h"
+#if defined(__XMOS__) && defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
+#include <xcore/channel.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 extern void full_data_initialize(void);
+
+#if defined(__XMOS__) && defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
+extern chanend_t g_c_graphics_side;
+#endif
 
 struct AUDIO_TIMER audio_timers[AUDIO_TIMER_COUNT];
 struct AUDIO_CHANNEL audio_channels[AUDIO_CHANNEL_COUNT];
@@ -71,6 +78,7 @@ static legacy_s8 embedded_found_filename[EMBEDDED_FILENAME_LENGTH];
 __attribute__((fptrgroup("restunts_embedded_sound_callbacks")))
 static restunts_embedded_sound_callback embedded_sound_callback;
 static void *embedded_sound_userdata;
+__attribute__((fptrgroup("restunts_embedded_frame_callbacks")))
 static restunts_embedded_frame_callback embedded_frame_callback;
 static void *embedded_frame_userdata;
 static legacy_u8 embedded_debug_enabled;
@@ -223,6 +231,7 @@ const legacy_u8 *restunts_embedded_palette(void)
 	return embedded_palette;
 }
 
+#if !defined(__XMOS__) || !defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
 static void embedded_bmp_store_u16(legacy_u8 *destination, legacy_u16 value)
 {
 	destination[0] = (legacy_u8)value;
@@ -280,11 +289,12 @@ static legacy_s16 embedded_save_frame_bmp(const legacy_u8 *framebuffer, const le
 	embedded_saved_frame_count++;
 	return 1;
 }
+#endif
 
 void restunts_embedded_present_frame(void)
 {
+	embedded_debug_frame_count++;
 	if (embedded_debug_enabled != 0) {
-		embedded_debug_frame_count++;
 		if (embedded_debug_frame_count == 1U || embedded_debug_frame_count % 100U == 0U) {
 			printf("[embedded] frame=%lu callback=%s\n",
 				   (unsigned long)embedded_debug_frame_count,
@@ -293,11 +303,17 @@ void restunts_embedded_present_frame(void)
 	}
 	const legacy_u8 *framebuffer = restunts_embedded_framebuffer();
 	const legacy_u8 *palette = restunts_embedded_palette();
+#if defined(__XMOS__) && defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
+	chan_out_word(g_c_graphics_side, embedded_debug_frame_count);
+	chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)framebuffer);
+	chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)palette);
+#else
 	if (embedded_frame_saver_enabled != 0 &&
 		embedded_save_frame_bmp(framebuffer, palette) == 0) {
 		fputs("[embedded] frame saver disabled after file write failure\n", stderr);
 		embedded_frame_saver_enabled = 0;
 	}
+#endif
 	if (embedded_frame_callback != NULL) {
 		embedded_frame_callback(framebuffer, palette, embedded_frame_userdata);
 	}
@@ -738,7 +754,10 @@ legacy_s32 skybox_hires_render(const struct SPRITE *target, const struct SKYBOX 
 }
 
 legacy_s32 render_workers_count(void) { return 0; }
-legacy_s32 render_workers_run(legacy_s32 count, void (*job)(void *, legacy_s32), void *context)
+legacy_s32 render_workers_run(
+	legacy_s32 count,
+	void (*__attribute__((fptrgroup("restunts_render_worker_callbacks"))) job)(void *, legacy_s32),
+	void *context)
 {
 	for (legacy_s32 index = 0; index < count; index++) job(context, index);
 	return 0;

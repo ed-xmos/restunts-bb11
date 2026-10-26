@@ -59,10 +59,11 @@ legacy_s16 track_solid_obstacle_contact(struct VECTOR *first, struct VECTOR *sec
 										legacy_s16 *fraction);
 legacy_s16 track_surface_contains_point(struct VECTOR *point);
 
-typedef legacy_s16 (*TRACK_SURFACE_SWEEP_TEST)(struct VECTOR *previous, struct VECTOR *current,
-											   legacy_s16 *fraction);
 legacy_s16 sweep_track_surface_candidates(struct VECTOR *previous, struct VECTOR *current,
-										  TRACK_SURFACE_SWEEP_TEST test, legacy_s16 *fraction);
+											  legacy_s16 (*__attribute__((fptrgroup(
+												  "restunts_track_surface_sweep_callbacks"))) test)(
+												  struct VECTOR *, struct VECTOR *, legacy_s16 *),
+											  legacy_s16 *fraction);
 
 #define TRACK_PLAN_RESOURCE_COUNT 536U
 #define TRACK_WALL_RESOURCE_COUNT 191U

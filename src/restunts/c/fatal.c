@@ -1,4 +1,7 @@
 #include <stdarg.h>
+#ifdef __XMOS__
+#include <assert.h>
+#endif
 #include "externs.h"
 #include "fatal.h"
 #include "platform.h"
@@ -36,11 +39,15 @@ void add_exit_handler(void(far *exit_handler)(void))
 
 void call_exitlist(void)
 {
+#ifdef __XMOS__
+	__builtin_trap();
+#else
 	for (legacy_s16 index = EXIT_HANDLER_MAX_COUNT; index >= 0; index--) {
 		if (exitlistfuncs[index] != 0) {
 			exitlistfuncs[index]();
 		}
 	}
+#endif
 }
 
 void call_exitlist2(void)
@@ -265,6 +272,11 @@ static void fatal_vprintf(const legacy_s8 *format, va_list arguments)
 
 void fatal_error(const legacy_s8 *format, ...)
 {
+#ifdef __XMOS__
+	(void)format;
+	__builtin_trap();
+	dos_process_exit(1);
+#else
 	sprite_select_screen();
 	va_list arguments;
 	va_start(arguments, format);
@@ -282,4 +294,5 @@ void fatal_error(const legacy_s8 *format, ...)
 	fatal_vprintf(format, arguments);
 	va_end(arguments);
 	dos_process_exit(1);
+#endif
 }

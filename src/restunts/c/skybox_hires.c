@@ -623,6 +623,7 @@ static void skybox_hires_render_banked(const struct SKYBOX_HIRES_RENDER *render,
 	}
 }
 
+__attribute__((fptrgroup("restunts_render_worker_callbacks")))
 static void skybox_hires_render_job(void *context, legacy_s32 index)
 {
 	struct SKYBOX_HIRES_JOB *job = &((struct SKYBOX_HIRES_JOB *)context)[index];
