@@ -12,6 +12,7 @@
 #include "../../c/restunts.h"
 #if defined(__XMOS__) && defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
 #include <xcore/channel.h>
+extern volatile legacy_u32 g_graphics_busy;
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -304,9 +305,20 @@ void restunts_embedded_present_frame(void)
 	const legacy_u8 *framebuffer = restunts_embedded_framebuffer();
 	const legacy_u8 *palette = restunts_embedded_palette();
 #if defined(__XMOS__) && defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
-	chan_out_word(g_c_graphics_side, embedded_debug_frame_count);
-	chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)framebuffer);
-	chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)palette);
+	if (embedded_debug_frame_count == 1U) {
+		legacy_u32 nonzero_pixels = 0;
+		for (legacy_u32 pixel = 0; pixel < EMBEDDED_FRAME_BYTES; pixel++) {
+			nonzero_pixels += framebuffer[pixel] != 0;
+		}
+		printf("[embedded] source frame=%lu nonzero=%lu framebuffer=%p palette=%p\n",
+			   (unsigned long)embedded_debug_frame_count, (unsigned long)nonzero_pixels,
+			   (const void *)framebuffer, (const void *)palette);
+	}
+	if (g_graphics_busy == 0) {
+		chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)framebuffer);
+		chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)palette);
+		chan_out_word(g_c_graphics_side, embedded_saved_frame_count++);
+	}
 #else
 	if (embedded_frame_saver_enabled != 0 &&
 		embedded_save_frame_bmp(framebuffer, palette) == 0) {

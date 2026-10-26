@@ -34,7 +34,7 @@ legacy_u16 shape2d_get_word(const legacy_u8 far *source);
 void shape2d_put_word(legacy_u8 far *destination, legacy_u16 value);
 legacy_u16 shape2d_get_line_offset(legacy_u16 sprite_segment, legacy_u16 y);
 legacy_u8 far *shape2d_line_pointer(const struct SPRITE far *sprite, legacy_u16 offset);
-#ifdef RESTUNTS_SDL3
+#if defined(RESTUNTS_SDL3) || defined(RESTUNTS_EMBEDDED_STUBS)
 #define shape2d_line_base(sprite) 0U
 #else
 #define shape2d_line_base(sprite) dos_memory_pointer_offset((sprite)->sprite_lineofs)

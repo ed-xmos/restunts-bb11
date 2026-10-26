@@ -5,6 +5,8 @@
 #include <xcore/hwtimer.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
+#include <xscope.h>
 
 #ifndef RESTUNTS_EMBEDDED_DEBUG
 #define RESTUNTS_EMBEDDED_DEBUG 0
@@ -15,8 +17,10 @@
 
 #define XMOS_BMP_HEADER_BYTES (14U + 40U + 256U * 4U)
 #define XMOS_FRAME_BYTES (320U * 200U)
+#define XMOS_PALETTE_BYTES (256U * 3U)
 
 chanend_t g_c_graphics_side = 0;
+volatile legacy_u32 g_graphics_busy = 0;
 
 static legacy_u8 xmos_bmp_header[XMOS_BMP_HEADER_BYTES];
 
@@ -98,20 +102,39 @@ void timer_thread(void)
 	hwtimer_t timer = hwtimer_alloc();
 	while (1) {
 		hwtimer_delay(timer, XS1_TIMER_KHZ * 10);
-		printf("tick\n");
+		putchar('.');
 		restunts_embedded_tick_10ms();
 	}
 }
 
 DECLARE_JOB(graphics_thread, (chanend_t));
+#pragma stackfunction 16896
 void graphics_thread(chanend_t channel)
 {
+	legacy_u8 framebuffer_snapshot[XMOS_FRAME_BYTES];
+	legacy_u8 palette_snapshot[XMOS_PALETTE_BYTES];
+	xscope_mode_lossless();
+	g_graphics_busy = 0;
 	for (;;) {
-		uint32_t frame_index = chan_in_word(channel);
+		g_graphics_busy = 0;
 		const legacy_u8 *framebuffer = (const legacy_u8 *)(uintptr_t)chan_in_word(channel);
 		const legacy_u8 *palette = (const legacy_u8 *)(uintptr_t)chan_in_word(channel);
-		graphics_save_frame(framebuffer, palette, frame_index);
+		g_graphics_busy = 1;
+		memcpy(palette_snapshot, palette, XMOS_PALETTE_BYTES);
+		memcpy(framebuffer_snapshot, framebuffer, XMOS_FRAME_BYTES);
+		uint32_t frame_index = chan_in_word(channel);
+		if (frame_index <= 2U) {
+			uint32_t nonzero_pixels = 0;
+			for (uint32_t pixel = 0; pixel < XMOS_FRAME_BYTES; pixel++) {
+				nonzero_pixels += framebuffer_snapshot[pixel] != 0;
+			}
+			printf("[XMOS] snapshot frame=%lu nonzero=%lu framebuffer=%p palette=%p\n",
+				   (unsigned long)frame_index, (unsigned long)nonzero_pixels,
+				   (const void *)framebuffer, (const void *)palette);
+		}
+		graphics_save_frame(framebuffer_snapshot, palette_snapshot, frame_index);
 		printf("[XMOS] Saved frame %lu\n", frame_index);
+		g_graphics_busy = 0;
 	}
 }
 

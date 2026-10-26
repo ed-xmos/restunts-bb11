@@ -86,7 +86,7 @@ legacy_u16 shape2d_get_pos_y(const struct SHAPE2D far *shape)
 
 legacy_u16 shape2d_get_line_offset(legacy_u16 sprite_segment, legacy_u16 y)
 {
-#ifdef RESTUNTS_SDL3
+#if defined(RESTUNTS_SDL3) || defined(RESTUNTS_EMBEDDED_STUBS)
 	(void)sprite_segment;
 	return shape2d_get_word(drawing_sprite.sprite_lineofs + (legacy_u16)(y << 1));
 #else
@@ -102,7 +102,7 @@ legacy_u16 shape2d_get_line_offset(legacy_u16 sprite_segment, legacy_u16 y)
  * segment containing the sprite. Keep 16-bit row-offset arithmetic intact. */
 legacy_u8 far *shape2d_line_pointer(const struct SPRITE far *sprite, legacy_u16 offset)
 {
-#ifdef RESTUNTS_SDL3
+#if defined(RESTUNTS_SDL3) || defined(RESTUNTS_EMBEDDED_STUBS)
 	return sprite->sprite_lineofs + offset;
 #else
 	return (legacy_u8 far *)dos_memory_make_pointer(dos_memory_pointer_segment(sprite), offset);

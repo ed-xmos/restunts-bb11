@@ -17,10 +17,16 @@ set(APP_COMPILER_FLAGS
     -DRESTUNTS_GIT_HASH=\"embedded\"
     -DUSE_EXTMEM=1
     -Wno-unknown-pragmas)
-option(RESTUNTS_XMOS_DEBUG "Enable embedded callback trace output" OFF)
+
+
+set(APP_XSCOPE_SRCS         src/restunts/platform/embedded/config.xscope)
+
+
+    option(RESTUNTS_XMOS_DEBUG "Enable embedded callback trace output" OFF)
 if(RESTUNTS_XMOS_DEBUG)
     list(APPEND APP_COMPILER_FLAGS -DRESTUNTS_EMBEDDED_DEBUG=1)
 endif()
+
 option(RESTUNTS_XMOS_SAVE_FRAMES "Save presented frames as BMP files" ON)
 if(RESTUNTS_XMOS_SAVE_FRAMES)
     list(APPEND APP_COMPILER_FLAGS -DRESTUNTS_EMBEDDED_SAVE_FRAMES=1)
@@ -30,13 +36,16 @@ set(APP_C_SRCS)
 foreach(source IN LISTS restunts_embedded_game_sources)
     list(APPEND APP_C_SRCS "src/restunts/c/${source}")
 endforeach()
+
 list(APPEND APP_C_SRCS
     src/restunts/platform/sdl3/memory.c
     src/restunts/platform/embedded/stubs.c
     src/restunts/platform/embedded/xmos_main.c)
-set(APP_INCLUDES
+
+    set(APP_INCLUDES
     src/restunts/c
     src/restunts/platform/embedded)
-set(XMOS_SANDBOX_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
+
+    set(XMOS_SANDBOX_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
 
 XMOS_REGISTER_APP()

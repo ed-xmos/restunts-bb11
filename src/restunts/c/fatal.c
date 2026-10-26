@@ -40,7 +40,9 @@ void add_exit_handler(void(far *exit_handler)(void))
 void call_exitlist(void)
 {
 #ifdef __XMOS__
-	__builtin_trap();
+	static const legacy_s8 message[] = "[XMOS] call_exitlist\n";
+	dos_show_startup_error(message);
+	dos_process_exit(1);
 #else
 	for (legacy_s16 index = EXIT_HANDLER_MAX_COUNT; index >= 0; index--) {
 		if (exitlistfuncs[index] != 0) {
@@ -273,8 +275,11 @@ static void fatal_vprintf(const legacy_s8 *format, va_list arguments)
 void fatal_error(const legacy_s8 *format, ...)
 {
 #ifdef __XMOS__
-	(void)format;
-	__builtin_trap();
+	static const legacy_s8 prefix[] = "[XMOS] fatal_error: ";
+	static const legacy_s8 newline[] = "\n";
+	dos_write_stderr(prefix, sizeof(prefix) - 1U);
+	dos_show_startup_error(format);
+	dos_write_stderr(newline, sizeof(newline) - 1U);
 	dos_process_exit(1);
 #else
 	sprite_select_screen();

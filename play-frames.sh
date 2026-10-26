@@ -51,12 +51,17 @@ if ! command -v ffplay >/dev/null 2>&1; then
 	printf 'ffplay is not installed or not on PATH.\n' >&2
 	exit 127
 fi
+frame_start=0
 if [[ ! -f "$frame_dir/fr0000.bmp" ]]; then
-	printf 'No fr0000.bmp found in %s\n' "$frame_dir" >&2
-	exit 1
+	if [[ -f "$frame_dir/fr0001.bmp" ]]; then
+		frame_start=1
+	else
+		printf 'No fr0000.bmp or fr0001.bmp found in %s\n' "$frame_dir" >&2
+		exit 1
+	fi
 fi
 
-ffplay_args=(-framerate "$frame_rate")
+ffplay_args=(-framerate "$frame_rate" -start_number "$frame_start")
 if [[ "$loop" -ne 0 ]]; then
 	ffplay_args=(-stream_loop -1 "${ffplay_args[@]}")
 fi

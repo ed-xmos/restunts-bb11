@@ -14,6 +14,7 @@
 #endif
 #include "game_input.h"
 #include "video_pages.h"
+
 #ifdef RESTUNTS_SDL3
 static struct SPRITE sdl3_background_contexts[SPRITE_BACKGROUND_STACK_CAPACITY][SPRITE_STATE_COUNT];
 #endif
@@ -213,7 +214,7 @@ struct SPRITE far *sprite_make_wnd(legacy_u16 width, legacy_u16 height, legacy_u
 {
 	(void)unused_flags;
 
-#ifndef RESTUNTS_SDL3
+#if !defined(RESTUNTS_SDL3) && !defined(RESTUNTS_EMBEDDED_STUBS)
 	legacy_u16 wnddefseg = dos_memory_pointer_segment(&wnd_defs);
 #endif
 
@@ -233,7 +234,7 @@ struct SPRITE far *sprite_make_wnd(legacy_u16 width, legacy_u16 height, legacy_u
 	// it is safe to read/write the pointers to next_wnd_def/wnd_defs, but not the contents
 	legacy_s8 *wnd = next_wnd_def;
 	legacy_s8 *nextwnd = next_wnd_def + sizeof(struct SPRITE) + height * sizeof(legacy_u16);
-#ifdef RESTUNTS_SDL3
+#if defined(RESTUNTS_SDL3) || defined(RESTUNTS_EMBEDDED_STUBS)
 	if (nextwnd > (legacy_s8 *)wnd_defs + WINDOW_DEFINITION_TABLE_BYTES) {
 #else
 	if (dos_memory_pointer_offset(nextwnd) >=
@@ -244,7 +245,7 @@ struct SPRITE far *sprite_make_wnd(legacy_u16 width, legacy_u16 height, legacy_u
 	next_wnd_def = nextwnd;
 
 	// get a writable far pointer to the render_window_sprite
-#ifdef RESTUNTS_SDL3
+#if defined(RESTUNTS_SDL3) || defined(RESTUNTS_EMBEDDED_STUBS)
 	struct SPRITE *farwnd = (struct SPRITE *)wnd;
 #else
 	struct SPRITE far *farwnd = dos_memory_make_pointer(wnddefseg, dos_memory_pointer_offset(wnd));
@@ -263,7 +264,7 @@ struct SPRITE far *sprite_make_wnd(legacy_u16 width, legacy_u16 height, legacy_u
 	farwnd->sprite_raster_right = width;
 
 	// create a writable far pointer to the line offsets
-#ifdef RESTUNTS_SDL3
+#if defined(RESTUNTS_SDL3) || defined(RESTUNTS_EMBEDDED_STUBS)
 	legacy_u8 *farlineofsptr = lineofsptr;
 #else
 	legacy_u8 far *farlineofsptr =
@@ -290,10 +291,14 @@ void sprite_free_wnd(struct SPRITE far *render_window_sprite)
 	// sprite_make_wnd initializes both heights alike, and normal clipping edits
 	// the drawing_sprite working copy rather than the stored window SPRITE, so using
 	// the bitmap field here is structural parity rather than a clipping repair.
-	legacy_u16 spritesize =
-		sizeof(struct SPRITE) +
-		shape2d_get_height(render_window_sprite->sprite_bitmapptr) * sizeof(legacy_u16);
-#ifdef RESTUNTS_SDL3
+	legacy_u16 window_height;
+#ifdef RESTUNTS_EMBEDDED_STUBS
+	window_height = render_window_sprite->sprite_bottom;
+#else
+	window_height = shape2d_get_height(render_window_sprite->sprite_bitmapptr);
+#endif
+	legacy_u16 spritesize = sizeof(struct SPRITE) + window_height * sizeof(legacy_u16);
+#if defined(RESTUNTS_SDL3) || defined(RESTUNTS_EMBEDDED_STUBS)
 	if ((legacy_s8 *)render_window_sprite + spritesize != next_wnd_def) {
 #else
 	if (dos_memory_pointer_offset(render_window_sprite) + spritesize !=
