@@ -1,22 +1,27 @@
 include("${CMAKE_CURRENT_LIST_DIR}/embedded-source-list.cmake")
 
-set(APP_HW_TARGET XCORE-AI-EXPLORER-800.xn)
+set(RESTUNTS_XMOS_HW_TARGET "XK-EVK-XU416" CACHE STRING "XMOS hardware target for the embedded application")
+# set(RESTUNTS_XMOS_HW_TARGET "XCORE-AI-EXPLORER-800.xn" CACHE STRING "XMOS hardware target for the embedded application")
+set_property(CACHE RESTUNTS_XMOS_HW_TARGET PROPERTY STRINGS
+    XCORE-AI-EXPLORER-800.xn XK-EVK-XU416)
+set(APP_HW_TARGET "${RESTUNTS_XMOS_HW_TARGET}")
 set(APP_PCA_ENABLE OFF)
 set(APP_COMPILER_FLAGS
-    -O3
-    -mno-dual-issue
     -g
     -report
     -std=gnu99
     -fsigned-char
-    -mcmodel=large
     -DPATH_MAX=64
     -D__XMOS__
     -DRESTUNTS_FULL
     -DRESTUNTS_EMBEDDED_STUBS
     -DRESTUNTS_GIT_HASH=\"embedded\"
-    -DUSE_EXTMEM=1
     -Wno-unknown-pragmas)
+if(RESTUNTS_XMOS_HW_TARGET STREQUAL "XK-EVK-XU416")
+    list(PREPEND APP_COMPILER_FLAGS -Os)
+else()
+    list(PREPEND APP_COMPILER_FLAGS -O3 -mno-dual-issue -mcmodel=large -DUSE_EXTMEM=1)
+endif()
 
 
 set(APP_XSCOPE_SRCS         src/restunts/platform/embedded/config.xscope)

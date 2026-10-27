@@ -55,12 +55,31 @@ if [[ ! -r "$XMOS_CMAKE_PATH/xcommon.cmake" ]]; then
 	exit 2
 fi
 
-build_dir=${RESTUNTS_XMOS_BUILD_DIR:-out/xmos}
+target=${RESTUNTS_XMOS_HW_TARGET:-XK-EVK-XU416}
+case "$target" in
+	XK-EVK-XU416) target_slug=xk-evk-xu416 ;;
+	XCORE-AI-EXPLORER-800.xn) target_slug=xcore-ai-explorer ;;
+	*)
+		printf 'Unsupported XMOS hardware target: %s\n' "$target" >&2
+		exit 2
+		;;
+esac
+
+toolchain_root=${XMOS_TOOL_PATH:-$XMOS_CMAKE_PATH}
+if [[ "$toolchain_root" == */build/xcommon_cmake ]]; then
+	toolchain_root=${toolchain_root%/build/xcommon_cmake}
+fi
+toolchain_slug=${toolchain_root##*/}
+toolchain_slug=${toolchain_slug,,}
+toolchain_slug=${toolchain_slug//[^a-z0-9]/-}
+default_build_dir="out/xmos-$target_slug-$toolchain_slug"
+
+build_dir=${RESTUNTS_XMOS_BUILD_DIR:-$default_build_dir}
 if [[ "$build_dir" != /* ]]; then
 	build_dir="$restunts_root/$build_dir"
 fi
 
-cmake_args=(-DRESTUNTS_BUILD_XMOS=ON)
+cmake_args=(-DRESTUNTS_BUILD_XMOS=ON "-DRESTUNTS_XMOS_HW_TARGET=$target")
 if [[ -n "${RESTUNTS_XMOS_DEBUG:-}" ]]; then
 	cmake_args+=("-DRESTUNTS_XMOS_DEBUG=$RESTUNTS_XMOS_DEBUG")
 fi
