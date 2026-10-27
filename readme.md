@@ -530,50 +530,6 @@ Upper-right **C**/**T** circles send the camera/follow keyboard shortcuts.
 SDL3 builds support Linux, BSD, Haiku, Windows, macOS, 32-bit DOS, and
 [offline HTML/WebAssembly](#sdl3-webassembly-build-offline-html).
 
-### Embedded C99 stub profile
-
-Build the dependency-free embedded stub library with the local C compiler:
-
-```sh
-tools/scripts/build-embedded-stubs.sh
-```
-
-To use an embedded compiler, pass its CMake toolchain file and use a separate
-build directory:
-
-```sh
-tools/scripts/build-embedded-stubs-toolchain.sh /path/to/your-toolchain.cmake
-```
-
-Both commands produce `librestunts_embedded_stubs.a` in the selected build
-directory. This strict C99 static library does not include SDL; your firmware
-provides the final entry point and links the archive. See
-[the embedded profile guide](docs/embedded-stubs.md) for its framebuffer,
-input, timer, sound-event, and filesystem interfaces.
-
-For the XCORE-AI Explorer xcommon build, run the root-level helper after `x15`
-has sourced the XMOS environment:
-
-```sh
-./build-xmos.sh
-```
-
-Alternatively, pass the directory containing `xcommon.cmake`:
-
-```sh
-./build-xmos.sh /path/to/xmos/cmake
-```
-
-Add `--clean` to clean generated outputs before building:
-
-```sh
-./build-xmos.sh --clean
-```
-
-This profile uses the same game/stub sources and the `XCORE-AI-EXPLORER-800.xn`
-target. It is a compile/link starting point; board-specific graphics, audio,
-timer, controls, and FFS wiring still need to be supplied.
-
 ### SDL3 native builds: Linux, BSD, Haiku, Windows, macOS, and 32-bit DOS
 
 The CMake build produces the game (`restunts`), physics dumper (`repldump`),
@@ -1709,4 +1665,8 @@ It also requires that the conventional-memory race framebuffer is absent. Run it
 in both DOSBox and DOSBox-X; the latter has a smaller conventional-memory budget. The bundled game
 and custom car resources are copied to an isolated directory. The test links
 all normal game objects; its small test entry makes its memory budget slightly
-stricter than the game.
+## Embedded Port Notes
+
+For embedded C99 stub and XMOS build instructions, plus the ExtMem investigation,
+see [readme-xmos.md](readme-xmos.md).
+

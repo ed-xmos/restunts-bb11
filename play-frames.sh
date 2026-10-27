@@ -8,7 +8,7 @@ set -euo pipefail
 
 restunts_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 frame_dir="$restunts_root/stunts"
-frame_rate=15
+frame_rate=25
 loop=0
 directory_set=0
 
