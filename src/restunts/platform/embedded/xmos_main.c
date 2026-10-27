@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <xscope.h>
+#if defined(RESTUNTS_LEGACY_MEMORY_IN_SOC_RAM)
+#include <vx4b_canonical_defines.h>
+#endif
 
 #ifndef RESTUNTS_EMBEDDED_DEBUG
 #define RESTUNTS_EMBEDDED_DEBUG 0
@@ -89,6 +92,22 @@ static void graphics_save_frame(const legacy_u8 *framebuffer, const legacy_u8 *p
 	(void)fclose(file);
 }
 
+/* ffconcat manifest: each frame's duration is only known when the next one arrives. */
+static void graphics_append_manifest(uint32_t next_index, uint32_t elapsed_ticks)
+{
+	FILE *file = fopen("frames.ffconcat", next_index == 0U ? "wb" : "ab");
+	if (file == NULL) {
+		return;
+	}
+	if (next_index == 0U) {
+		fputs("ffconcat version 1.0\n", file);
+	} else {
+		fprintf(file, "file 'fr%04lu.bmp'\nduration %lu.%02lu\n", (unsigned long)(next_index - 1U),
+				(unsigned long)(elapsed_ticks / 100U), (unsigned long)(elapsed_ticks % 100U));
+	}
+	(void)fclose(file);
+}
+
 DECLARE_JOB(game_thread, (chanend_t, legacy_s16, legacy_s8 **));
 void game_thread(chanend_t c_graphics, legacy_s16 argc, legacy_s8 **argv)
 {
@@ -101,8 +120,10 @@ void timer_thread(void)
 {
 	hwtimer_t timer = hwtimer_alloc();
 	while (1) {
-		hwtimer_delay(timer, XS1_TIMER_KHZ * 10);
+		const int milliseconds = 100000;
+		hwtimer_delay(timer, milliseconds * 10);
 		putchar('.');
+		// printf("%lu\n", (unsigned long)hwtimer_get_time(timer));
 		restunts_embedded_tick_10ms();
 	}
 }
@@ -114,15 +135,18 @@ void graphics_thread(chanend_t channel)
 	legacy_u8 framebuffer_snapshot[XMOS_FRAME_BYTES];
 	legacy_u8 palette_snapshot[XMOS_PALETTE_BYTES];
 	xscope_mode_lossless();
+	uint32_t file_index = 0;
 	g_graphics_busy = 0;
 	for (;;) {
 		g_graphics_busy = 0;
 		const legacy_u8 *framebuffer = (const legacy_u8 *)(uintptr_t)chan_in_word(channel);
 		const legacy_u8 *palette = (const legacy_u8 *)(uintptr_t)chan_in_word(channel);
 		g_graphics_busy = 1;
+		uint32_t frame_index = chan_in_word(channel);
+		uint32_t elapsed_ticks = chan_in_word(channel);
+		graphics_append_manifest(file_index, elapsed_ticks);
 		memcpy(palette_snapshot, palette, XMOS_PALETTE_BYTES);
 		memcpy(framebuffer_snapshot, framebuffer, XMOS_FRAME_BYTES);
-		uint32_t frame_index = chan_in_word(channel);
 		if (frame_index <= 2U) {
 			uint32_t nonzero_pixels = 0;
 			for (uint32_t pixel = 0; pixel < XMOS_FRAME_BYTES; pixel++) {
@@ -132,9 +156,10 @@ void graphics_thread(chanend_t channel)
 				   (unsigned long)frame_index, (unsigned long)nonzero_pixels,
 				   (const void *)framebuffer, (const void *)palette);
 		}
-		graphics_save_frame(framebuffer_snapshot, palette_snapshot, frame_index);
-		printf("[XMOS] Saved frame %lu\n", frame_index);
+		graphics_save_frame(framebuffer_snapshot, palette_snapshot, file_index++);
+		printf("[XMOS] Saved frame %lu\n", file_index - 1U);
 		g_graphics_busy = 0;
+		chan_out_word(channel, 0);
 	}
 }
 
@@ -143,6 +168,11 @@ int main(void)
 {
 	legacy_s8 program_name[] = "restunts";
 	legacy_s8 *arguments[] = {program_name, 0};
+#if defined(RESTUNTS_LEGACY_MEMORY_IN_SOC_RAM)
+	/* Enable SoC RAM before the legacy memory arena is first touched. */
+	__asm__ volatile ("csrrs zero, 0x7c2, %0" : : "r"(1u) : "memory");
+	memset((void *)(uintptr_t)VX_SOC_RAM_BASE, 0, VX_SOC_RAM_SIZE);
+#endif
 	restunts_embedded_set_debug(RESTUNTS_EMBEDDED_DEBUG);
 	restunts_embedded_set_frame_saver(0);
 

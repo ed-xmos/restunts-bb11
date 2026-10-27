@@ -9,6 +9,7 @@ set -euo pipefail
 restunts_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 frame_dir="$restunts_root/stunts"
 frame_rate=25
+max_hold=0.5
 loop=0
 directory_set=0
 
@@ -23,8 +24,16 @@ while [[ $# -gt 0 ]]; do
 			shift
 			;;
 		--loop) loop=1 ;;
+		--max-hold)
+			if [[ $# -lt 2 || ! "$2" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+				printf 'Expected a number of seconds after --max-hold.\n' >&2
+				exit 2
+			fi
+			max_hold=$2
+			shift
+			;;
 		-h|--help)
-			printf 'Usage: %s [--fps rate] [--loop] [frame-directory]\n' \
+			printf 'Usage: %s [--fps rate] [--max-hold seconds] [--loop] [frame-directory]\n' \
 				"$(basename -- "$0")"
 			exit 0
 			;;
@@ -59,6 +68,23 @@ if [[ ! -f "$frame_dir/fr0000.bmp" ]]; then
 		printf 'No fr0000.bmp or fr0001.bmp found in %s\n' "$frame_dir" >&2
 		exit 1
 	fi
+fi
+
+if [[ -f "$frame_dir/frames.ffconcat" ]]; then
+	concat_args=(-f concat -safe 0)
+	if [[ "$loop" -ne 0 ]]; then
+		concat_args+=(-loop 0)
+	fi
+	concat_list=$frame_dir/frames.ffconcat
+	# Cap each frame's hold time (0 keeps the recorded timing).
+	if [[ "$max_hold" != 0 ]]; then
+		concat_list=$(mktemp "$frame_dir/.play-frames.XXXXXX")
+		trap 'rm -f "$concat_list"' EXIT
+		awk -v cap="$max_hold" '$1 == "duration" && $2 + 0 > cap { $2 = cap } { print }' \
+			"$frame_dir/frames.ffconcat" > "$concat_list"
+	fi
+	ffplay "${concat_args[@]}" -i "$concat_list"
+	exit $?
 fi
 
 ffplay_args=(-framerate "$frame_rate" -start_number "$frame_start")

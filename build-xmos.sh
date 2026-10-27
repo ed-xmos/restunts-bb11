@@ -55,9 +55,9 @@ if [[ ! -r "$XMOS_CMAKE_PATH/xcommon.cmake" ]]; then
 	exit 2
 fi
 
-target=${RESTUNTS_XMOS_HW_TARGET:-XK-EVK-XU416}
+target=${RESTUNTS_XMOS_HW_TARGET:-XK-EVK-XU416-800.xn}
 case "$target" in
-	XK-EVK-XU416) target_slug=xk-evk-xu416 ;;
+	XK-EVK-XU416-800.xn) target_slug=xk-evk-xu416 ;;
 	XCORE-AI-EXPLORER-800.xn) target_slug=xcore-ai-explorer ;;
 	*)
 		printf 'Unsupported XMOS hardware target: %s\n' "$target" >&2

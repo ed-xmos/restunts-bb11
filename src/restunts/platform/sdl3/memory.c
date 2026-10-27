@@ -22,7 +22,15 @@
 /* Resource files contain real 16:16 addresses after relocation. Keep their
  * address space independent of the host pointer size, including VGA A000:0.
  * Native static/stack objects use registered pages outside the resource arena. */
+#if defined(RESTUNTS_LEGACY_MEMORY_IN_SOC_RAM)
+#include <vx4b_canonical_defines.h>
+#ifndef VX_SOC_RAM_BASE
+#error VX_SOC_RAM_BASE must be defined by the XU416 SDK headers or compiler flags
+#endif
+#define memory ((legacy_u8 *)(uintptr_t)VX_SOC_RAM_BASE)
+#else
 static legacy_u8 memory[MEMORY_BYTES] RESTUNTS_EXTMEM_BSS;
+#endif
 static uintptr_t external_pages[EXTERNAL_PAGE_COUNT];
 static legacy_u16 external_page_count;
 

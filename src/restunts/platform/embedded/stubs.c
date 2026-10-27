@@ -70,6 +70,8 @@ static legacy_u8 embedded_joystick_enabled;
 static legacy_u8 embedded_palette[EMBEDDED_PALETTE_BYTES];
 static void (__attribute__((fptrgroup("restunts_timer_callbacks")))
 			*embedded_timer_callbacks[EMBEDDED_TIMER_CALLBACK_COUNT])(void);
+static volatile legacy_u8 embedded_time_frozen;
+static legacy_u32 embedded_last_saved_ticks;
 static legacy_u32 embedded_game_ticks;
 static legacy_u32 embedded_realtime_ticks;
 static legacy_u32 embedded_slow_ticks;
@@ -200,6 +202,9 @@ legacy_s16 restunts_embedded_run(legacy_s16 argc, legacy_s8 *argv[])
 
 void restunts_embedded_tick_10ms(void)
 {
+	if (embedded_time_frozen) {
+		return;
+	}
 	embedded_realtime_ticks++;
 	if (embedded_debug_enabled != 0 &&
 		(embedded_realtime_ticks == 1U || embedded_realtime_ticks % 100U == 0U)) {
@@ -314,11 +319,19 @@ void restunts_embedded_present_frame(void)
 			   (unsigned long)embedded_debug_frame_count, (unsigned long)nonzero_pixels,
 			   (const void *)framebuffer, (const void *)palette);
 	}
-	if (g_graphics_busy == 0) {
-		chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)framebuffer);
-		chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)palette);
-		chan_out_word(g_c_graphics_side, embedded_saved_frame_count++);
+	/* Saving is slow; freeze game time and never drop frames so playback is not sped up. */
+	legacy_u32 elapsed_ticks = embedded_realtime_ticks - embedded_last_saved_ticks;
+	if (embedded_realtime_ticks < embedded_last_saved_ticks) {
+		elapsed_ticks = 0;
 	}
+	embedded_last_saved_ticks = embedded_realtime_ticks;
+	embedded_time_frozen = 1;
+	chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)framebuffer);
+	chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)palette);
+	chan_out_word(g_c_graphics_side, embedded_saved_frame_count++);
+	chan_out_word(g_c_graphics_side, elapsed_ticks);
+	(void)chan_in_word(g_c_graphics_side);
+	embedded_time_frozen = 0;
 #else
 	if (embedded_frame_saver_enabled != 0 &&
 		embedded_save_frame_bmp(framebuffer, palette) == 0) {
