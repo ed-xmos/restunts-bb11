@@ -341,6 +341,9 @@ void far *file_read_nofatal(const legacy_s8 *filename, void far *dst)
 // panel - so it is reproduced rather than corrected.
 legacy_s16 file_write(const legacy_s8 *filename, void far *src, legacy_u32 length, legacy_s16 fatal)
 {
+#if defined(RESTUNTS_XMOS_USE_FFS)
+	return 0;
+#endif
 	fileio_handle file;
 	legacy_u16 retval = 0;
 #ifdef __EMSCRIPTEN__

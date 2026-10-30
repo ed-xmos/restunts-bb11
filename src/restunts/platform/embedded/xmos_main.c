@@ -92,22 +92,6 @@ static void graphics_save_frame(const legacy_u8 *framebuffer, const legacy_u8 *p
 	(void)fclose(file);
 }
 
-/* ffconcat manifest: each frame's duration is only known when the next one arrives. */
-static void graphics_append_manifest(uint32_t next_index, uint32_t elapsed_ticks)
-{
-	FILE *file = fopen("frames.ffconcat", next_index == 0U ? "wb" : "ab");
-	if (file == NULL) {
-		return;
-	}
-	if (next_index == 0U) {
-		fputs("ffconcat version 1.0\n", file);
-	} else {
-		fprintf(file, "file 'fr%04lu.bmp'\nduration %lu.%02lu\n", (unsigned long)(next_index - 1U),
-				(unsigned long)(elapsed_ticks / 100U), (unsigned long)(elapsed_ticks % 100U));
-	}
-	(void)fclose(file);
-}
-
 DECLARE_JOB(game_thread, (chanend_t, legacy_s16, legacy_s8 **));
 void game_thread(chanend_t c_graphics, legacy_s16 argc, legacy_s8 **argv)
 {
@@ -143,11 +127,9 @@ void graphics_thread(chanend_t channel)
 		const legacy_u8 *palette = (const legacy_u8 *)(uintptr_t)chan_in_word(channel);
 		g_graphics_busy = 1;
 		uint32_t frame_index = chan_in_word(channel);
-		uint32_t elapsed_ticks = chan_in_word(channel);
-		graphics_append_manifest(file_index, elapsed_ticks);
 		memcpy(palette_snapshot, palette, XMOS_PALETTE_BYTES);
 		memcpy(framebuffer_snapshot, framebuffer, XMOS_FRAME_BYTES);
-		if (frame_index <= 2U) {
+		if (frame_index <= 25U) {
 			uint32_t nonzero_pixels = 0;
 			for (uint32_t pixel = 0; pixel < XMOS_FRAME_BYTES; pixel++) {
 				nonzero_pixels += framebuffer_snapshot[pixel] != 0;
@@ -156,8 +138,11 @@ void graphics_thread(chanend_t channel)
 				   (unsigned long)frame_index, (unsigned long)nonzero_pixels,
 				   (const void *)framebuffer, (const void *)palette);
 		}
+		uint32_t save_start = get_reference_time();
 		graphics_save_frame(framebuffer_snapshot, palette_snapshot, file_index++);
-		printf("[XMOS] Saved frame %lu\n", file_index - 1U);
+		uint32_t save_elapsed = get_reference_time() - save_start;
+		printf("[XMOS] Saved frame %lu: elapsed=%u us\n",
+			   (unsigned long)(file_index - 1U), (unsigned)(save_elapsed / 100U));
 		g_graphics_busy = 0;
 		chan_out_word(channel, 0);
 	}

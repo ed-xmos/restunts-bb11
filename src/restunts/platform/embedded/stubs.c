@@ -55,7 +55,9 @@ struct EMBEDDED_KEY_STATE {
 	legacy_u8 down;
 };
 
+#if !defined(RESTUNTS_XMOS_USE_FFS)
 static FILE *embedded_files[EMBEDDED_FILE_COUNT];
+#endif
 static struct EMBEDDED_KEY_STATE embedded_key_states[EMBEDDED_KEY_STATE_CAPACITY];
 static legacy_s16 embedded_key_queue[EMBEDDED_KEY_CAPACITY];
 static legacy_u32 embedded_key_read;
@@ -71,13 +73,14 @@ static legacy_u8 embedded_palette[EMBEDDED_PALETTE_BYTES];
 static void (__attribute__((fptrgroup("restunts_timer_callbacks")))
 			*embedded_timer_callbacks[EMBEDDED_TIMER_CALLBACK_COUNT])(void);
 static volatile legacy_u8 embedded_time_frozen;
-static legacy_u32 embedded_last_saved_ticks;
 static legacy_u32 embedded_game_ticks;
 static legacy_u32 embedded_realtime_ticks;
 static legacy_u32 embedded_slow_ticks;
 static legacy_u8 embedded_callbacks_suspended;
+#if !defined(RESTUNTS_XMOS_USE_FFS)
 static legacy_s16 embedded_file_error;
 static legacy_s8 embedded_found_filename[EMBEDDED_FILENAME_LENGTH];
+#endif
 __attribute__((fptrgroup("restunts_embedded_sound_callbacks")))
 static restunts_embedded_sound_callback embedded_sound_callback;
 static void *embedded_sound_userdata;
@@ -320,16 +323,10 @@ void restunts_embedded_present_frame(void)
 			   (const void *)framebuffer, (const void *)palette);
 	}
 	/* Saving is slow; freeze game time and never drop frames so playback is not sped up. */
-	legacy_u32 elapsed_ticks = embedded_realtime_ticks - embedded_last_saved_ticks;
-	if (embedded_realtime_ticks < embedded_last_saved_ticks) {
-		elapsed_ticks = 0;
-	}
-	embedded_last_saved_ticks = embedded_realtime_ticks;
 	embedded_time_frozen = 1;
 	chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)framebuffer);
 	chan_out_word(g_c_graphics_side, (uint32_t)(uintptr_t)palette);
 	chan_out_word(g_c_graphics_side, embedded_saved_frame_count++);
-	chan_out_word(g_c_graphics_side, elapsed_ticks);
 	(void)chan_in_word(g_c_graphics_side);
 	embedded_time_frozen = 0;
 #else
@@ -384,6 +381,7 @@ void dos_interrupts_disable(void) {}
 void dos_interrupts_enable(void) {}
 void dos_set_critical_error_handler(legacy_s16(far *callback)(void)) { (void)callback; }
 
+#if !defined(RESTUNTS_XMOS_USE_FFS)
 static FILE *embedded_open_file(const char *path, const char *mode)
 {
 	FILE *file = fopen(path, mode);
@@ -523,6 +521,7 @@ const legacy_s8 *dos_file_find_first(const legacy_s8 *query)
 }
 
 const legacy_s8 *dos_file_find_next(void) { return NULL; }
+#endif
 
 void kb_init_interrupt(void) {}
 void kb_exit_handler(void) {}

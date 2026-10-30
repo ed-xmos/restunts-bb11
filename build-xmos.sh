@@ -86,6 +86,12 @@ fi
 if [[ -n "${RESTUNTS_XMOS_SAVE_FRAMES:-}" ]]; then
 	cmake_args+=("-DRESTUNTS_XMOS_SAVE_FRAMES=$RESTUNTS_XMOS_SAVE_FRAMES")
 fi
+if [[ -n "${RESTUNTS_XMOS_USE_FFS:-}" ]]; then
+	cmake_args+=("-DRESTUNTS_XMOS_USE_FFS=$RESTUNTS_XMOS_USE_FFS")
+fi
+if [[ -n "${RESTUNTS_XMOS_FILESYSTEM_DIR:-}" ]]; then
+	cmake_args+=("-DRESTUNTS_XMOS_FILESYSTEM_DIR=$RESTUNTS_XMOS_FILESYSTEM_DIR")
+fi
 cmake -S "$restunts_root" -B "$build_dir" "${cmake_args[@]}"
 if [[ "$clean_build" -eq 1 ]]; then
 	cmake --build "$build_dir" --target clean

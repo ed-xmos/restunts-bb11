@@ -205,6 +205,9 @@ static legacy_s16 ghost_copy_input(legacy_u16 source, legacy_u16 destination, le
 
 legacy_s16 ghost_select_replay(const legacy_s8 *directory, const legacy_s8 *name)
 {
+#if defined(RESTUNTS_XMOS_USE_FFS)
+	return 1;
+#endif
 	legacy_s8 path[REPLAY_FILENAME_SIZE];
 	legacy_u16 directory_length = directory == 0 ? 0 : strlen(directory);
 	if ((legacy_u32)directory_length + strlen(name) + GHOST_REPLAY_PATH_OVERHEAD > sizeof(path)) {

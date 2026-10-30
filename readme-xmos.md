@@ -55,11 +55,53 @@ RESTUNTS_XMOS_HW_TARGET=XCORE-AI-EXPLORER-800.xn \\
 the compiler. The compiler/toolchain comes from the sourced XMOS environment or
 the directory containing `xcommon.cmake`. This profile uses the same game/stub
 sources and is a compile/link starting point; board-specific graphics, audio,
-timer, controls, and FFS wiring still need to be supplied.
+timer, and controls still need to be supplied.
 
 The XU416 target uses XTC 0.3.6-compatible flags and does not place the
 legacy-memory arena in external DDR. The image compiles and links with the
 supplied toolchain; runtime behavior on the board has not yet been validated.
+
+## Read-Only Flash Filesystem
+
+`RESTUNTS_XMOS_USE_FFS` defaults to `ON` for `XK-EVK-XU416-800.xn`.
+It uses the plain-C Petit FatFs core from the sibling `lib_filesystem` checkout
+and the XTC 0.3.6 flash libraries. Other targets retain host stdio by default;
+the flash backend currently supports the XU416 target only.
+
+The flash must contain a FAT12 image in its xflash data partition. After building
+the game, run `./flash-ffs-xmos.sh` to create `cmake/bin/ffs_image.img` and flash
+it alongside `cmake/bin/restunts.xe`. This includes the `stunts` files except
+BMPs and `frames.ffconcat`, storing their basenames in the FAT root. The script
+defaults to a 1 MiB boot partition; set `RESTUNTS_XMOS_BOOT_PARTITION_SIZE` to
+override its size in bytes. This replaces the board's factory image and data
+partition. The game discovers the data partition address rather
+than assuming a fixed boot partition size. An image already validated with the
+VX4 filesystem comparison test can be reused when loading the game with xrun.
+
+The backend mounts lazily on the first file access and allows one open file.
+It supports reads, DOS seek/tell, case-insensitive filenames, and exact-name
+file discovery. A second open is rejected with a diagnostic without replacing
+the active file. Wildcard discovery remains unsupported, as in the stdio stub.
+Game saves are skipped, and ghost replay selection is disabled because it
+requires a writable temporary file. Direct create/write/remove calls fail;
+they never modify flash. Diagnostic frame capture still uses host stdio.
+
+Build with the default flash backend:
+
+```sh
+./build-xmos.sh
+```
+
+Restore the host-stdio backend for comparison:
+
+```sh
+RESTUNTS_XMOS_USE_FFS=OFF ./build-xmos.sh
+```
+
+Re-enable it with `RESTUNTS_XMOS_USE_FFS=ON`. The helper forwards these settings
+to the CMake cache; omitting an override retains a previously cached value.
+Set `RESTUNTS_XMOS_FILESYSTEM_DIR` to the library directory containing
+`src/file_systems/petit_fatfs` if the checkout is elsewhere.
 
 ## XMOS ExtMem Car-Rendering Investigation
 
