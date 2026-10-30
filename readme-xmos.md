@@ -61,6 +61,15 @@ The XU416 target uses XTC 0.3.6-compatible flags and does not place the
 legacy-memory arena in external DDR. The image compiles and links with the
 supplied toolchain; runtime behavior on the board has not yet been validated.
 
+The LCD uses local copies of the `fwk_io` SPI master and master API in
+`src/restunts/platform/embedded/spi_master.c` and `spi.h`, derived from
+[XMOS fwk_io](https://github.com/xmos/fwk_io) revision
+`b88f0d700a8f8eda8e686c4a088ff7d648ef69f6`. The original source is available
+there under the [XMOS Public Licence v1](https://github.com/xmos/fwk_io/blob/b88f0d700a8f8eda8e686c4a088ff7d648ef69f6/LICENSE.rst).
+The local changes use architecture-aware SDK resource/partial-output operations
+and C bit interleaving on VX4 instead of legacy `zip`/`unzip` assembly.
+The XMOS build does not fetch or compile the upstream SPI module.
+
 ## Read-Only Flash Filesystem
 
 `RESTUNTS_XMOS_USE_FFS` defaults to `ON` for `XK-EVK-XU416-800.xn`.

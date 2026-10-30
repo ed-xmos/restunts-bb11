@@ -10,7 +10,7 @@
 #include "../../c/skybox_hires.h"
 #include "../../c/render_workers.h"
 #include "../../c/restunts.h"
-#if defined(__XMOS__) && defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
+#if defined(__XMOS__)
 #include <xcore/channel.h>
 extern volatile legacy_u32 g_graphics_busy;
 #endif
@@ -20,7 +20,7 @@ extern volatile legacy_u32 g_graphics_busy;
 
 extern void full_data_initialize(void);
 
-#if defined(__XMOS__) && defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
+#if defined(__XMOS__)
 extern chanend_t g_c_graphics_side;
 #endif
 
@@ -240,7 +240,7 @@ const legacy_u8 *restunts_embedded_palette(void)
 	return embedded_palette;
 }
 
-#if !defined(__XMOS__) || !defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
+#if !defined(__XMOS__)
 static void embedded_bmp_store_u16(legacy_u8 *destination, legacy_u16 value)
 {
 	destination[0] = (legacy_u8)value;
@@ -312,7 +312,7 @@ void restunts_embedded_present_frame(void)
 	}
 	const legacy_u8 *framebuffer = restunts_embedded_framebuffer();
 	const legacy_u8 *palette = restunts_embedded_palette();
-#if defined(__XMOS__) && defined(RESTUNTS_EMBEDDED_SAVE_FRAMES)
+#if defined(__XMOS__)
 	if (embedded_debug_frame_count == 1U) {
 		legacy_u32 nonzero_pixels = 0;
 		for (legacy_u32 pixel = 0; pixel < EMBEDDED_FRAME_BYTES; pixel++) {

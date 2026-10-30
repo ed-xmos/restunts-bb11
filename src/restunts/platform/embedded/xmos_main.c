@@ -3,6 +3,7 @@
 #include <xcore/channel.h>
 #include <xcore/parallel.h>
 #include <xcore/hwtimer.h>
+#include <netmain.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -10,6 +11,7 @@
 #if defined(RESTUNTS_LEGACY_MEMORY_IN_SOC_RAM)
 #include <vx4b_canonical_defines.h>
 #endif
+#include "lcd.h"
 
 #ifndef RESTUNTS_EMBEDDED_DEBUG
 #define RESTUNTS_EMBEDDED_DEBUG 0
@@ -112,14 +114,17 @@ void timer_thread(void)
 	}
 }
 
-DECLARE_JOB(graphics_thread, (chanend_t));
+DECLARE_JOB(graphics_thread, (chanend_t, chanend_t));
 #pragma stackfunction 16896
-void graphics_thread(chanend_t channel)
+void graphics_thread(chanend_t channel, chanend_t c_lcd)
 {
 	legacy_u8 framebuffer_snapshot[XMOS_FRAME_BYTES];
 	legacy_u8 palette_snapshot[XMOS_PALETTE_BYTES];
+	uint16_t lcd_palette[256];
 	xscope_mode_lossless();
+#if RESTUNTS_EMBEDDED_SAVE_FRAMES
 	uint32_t file_index = 0;
+#endif
 	g_graphics_busy = 0;
 	for (;;) {
 		g_graphics_busy = 0;
@@ -138,18 +143,36 @@ void graphics_thread(chanend_t channel)
 				   (unsigned long)frame_index, (unsigned long)nonzero_pixels,
 				   (const void *)framebuffer, (const void *)palette);
 		}
+#if RESTUNTS_EMBEDDED_SAVE_FRAMES
 		uint32_t save_start = get_reference_time();
 		graphics_save_frame(framebuffer_snapshot, palette_snapshot, file_index++);
 		uint32_t save_elapsed = get_reference_time() - save_start;
 		printf("[XMOS] Saved frame %lu: elapsed=%u us\n",
 			   (unsigned long)(file_index - 1U), (unsigned)(save_elapsed / 100U));
+#else
+		if (frame_index <= 25U || frame_index % 100U == 0) {
+			printf("[XMOS] Presented frame %lu (file saving disabled)\n",
+				   (unsigned long)frame_index);
+		}
+#endif
+		for (uint32_t index = 0; index < 256; index++) {
+			uint32_t offset = index * 3;
+			uint8_t red = ((palette_snapshot[offset] & 63U) * 255U + 31U) / 63U;
+			uint8_t green = ((palette_snapshot[offset + 1] & 63U) * 255U + 31U) / 63U;
+			uint8_t blue = ((palette_snapshot[offset + 2] & 63U) * 255U + 31U) / 63U;
+			lcd_palette[index] = rgb565(red, green, blue);
+		}
+		s_chan_out_word(c_lcd, DD_SET_PALETTE);
+		s_chan_out_buf_byte(c_lcd, (const uint8_t *)lcd_palette, sizeof(lcd_palette));
+		s_chan_out_word(c_lcd, DD_WRITE);
+		s_chan_out_buf_byte(c_lcd, framebuffer_snapshot, sizeof(framebuffer_snapshot));
 		g_graphics_busy = 0;
 		chan_out_word(channel, 0);
 	}
 }
 
 
-int main(void)
+void main_tile_0(void)
 {
 	legacy_s8 program_name[] = "restunts";
 	legacy_s8 *arguments[] = {program_name, 0};
@@ -161,10 +184,32 @@ int main(void)
 	restunts_embedded_set_debug(RESTUNTS_EMBEDDED_DEBUG);
 	restunts_embedded_set_frame_saver(0);
 
+	chanend_t c_lcd = chanend_alloc();
 	channel_t c_graphics = chan_alloc();
+	printf("c_lcd app=%p\n", (void *)c_lcd);
+	chanend_set_dest(c_lcd, 0x80030002); // From tile 1, main_tile_1
 
 	PAR_JOBS(	PJOB(timer_thread, ()),
-				PJOB(graphics_thread, (c_graphics.end_b)),
+				PJOB(graphics_thread, (c_graphics.end_b, c_lcd)),
 				PJOB(game_thread, (c_graphics.end_a, 1, arguments))	);
-	return 0;
 }
+
+void main_tile_1(void)
+{
+	chanend_t c_framebuffer = chanend_alloc();
+	printf("c_lcd serv=%p\n", (void *)c_framebuffer);
+	chanend_set_dest(c_framebuffer, 0x80020002); // From tile 1, main_tile_1
+	channel_t c_lcd = s_chan_alloc();
+	PAR_JOBS(
+		PJOB(lcd, (c_lcd.end_b)),
+		PJOB(remote_render, (c_lcd.end_a, c_framebuffer))
+	);
+	return;
+}
+
+
+// Network main
+NETWORK_MAIN(
+  TILE_MAIN_VOID(main_tile_1, 1),
+  TILE_MAIN_VOID(main_tile_0, 0)
+)

@@ -37,7 +37,7 @@ if(RESTUNTS_XMOS_USE_FFS)
     list(APPEND APP_COMPILER_FLAGS -DRESTUNTS_XMOS_USE_FFS=1)
 endif()
 if(RESTUNTS_XMOS_HW_TARGET STREQUAL "XK-EVK-XU416-800.xn")
-    list(PREPEND APP_COMPILER_FLAGS -Os -DRESTUNTS_LEGACY_MEMORY_IN_SOC_RAM=1)
+    list(PREPEND APP_COMPILER_FLAGS -Os -ffunction-sections -fdata-sections -DRESTUNTS_LEGACY_MEMORY_IN_SOC_RAM=1)
 else()
     list(PREPEND APP_COMPILER_FLAGS -O3 -mno-dual-issue -mcmodel=large -DUSE_EXTMEM=1)
 endif()
@@ -64,15 +64,20 @@ endforeach()
 list(APPEND APP_C_SRCS
     src/restunts/platform/sdl3/memory.c
     src/restunts/platform/embedded/stubs.c
+    src/restunts/platform/embedded/lcd.c
+    src/restunts/platform/embedded/spi_master.c
     src/restunts/platform/embedded/xmos_main.c)
 
     set(APP_INCLUDES
     src/restunts/c
     src/restunts/platform/embedded)
 
-    set(XMOS_SANDBOX_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
+set(XMOS_SANDBOX_DIR "${CMAKE_CURRENT_LIST_DIR}/../..")
 
 XMOS_REGISTER_APP()
+if(RESTUNTS_XMOS_HW_TARGET STREQUAL "XK-EVK-XU416-800.xn")
+    target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
+endif()
 if(RESTUNTS_XMOS_USE_FFS)
     target_sources(${PROJECT_NAME} PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/../src/restunts/platform/embedded/flash_filesystem.c"
